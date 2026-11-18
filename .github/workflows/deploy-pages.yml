@@ -51,8 +51,7 @@ jobs:
       - name: Build and Bundle HTML5 (WASM)
         run: |
           java -jar tools/bob.jar \
-            --platform js-web \
-            --architectures wasm-web \
+            --platform wasm-web \
             --archive \
             --bundle-output build/bundle \
             build bundle
