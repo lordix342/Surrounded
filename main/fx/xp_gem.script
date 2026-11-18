@@ -1,0 +1,60 @@
+local game_state = require("main.modules.game_state")
+
+go.property("xp_value", 10)
+
+local PICKUP_DISTANCE = 15
+local BASE_MAGNET_SPEED = 180
+
+function init(self)
+	self.hero_url = msg.url("/hero_ob")
+	self.collected = false
+	self.speed = 0
+	self.is_magnetized = false
+
+	local pos = go.get_position()
+	pos.z = 0.07
+	go.set_position(pos)
+
+	-- Small initial spawn pop
+	local pop_dx = (math.random() - 0.5) * 16
+	local pop_dy = (math.random() - 0.5) * 16
+	local target_pos = vmath.vector3(pos.x + pop_dx, pos.y + pop_dy, pos.z)
+	go.animate(".", "position", go.PLAYBACK_ONCE_FORWARD, target_pos, go.EASING_OUTQUAD, 0.25)
+end
+
+function update(self, dt)
+	if not game_state.is_running() or self.collected then
+		return
+	end
+
+	local ok, hero_pos = pcall(go.get_position, self.hero_url)
+	if not ok or not hero_pos then
+		return
+	end
+
+	local my_pos = go.get_position()
+	local delta = hero_pos - my_pos
+	delta.z = 0
+	local dist = vmath.length(delta)
+
+	local magnet_radius = game_state.magnet_radius or 50
+
+	if dist <= PICKUP_DISTANCE then
+		self.collected = true
+		msg.post(self.hero_url, "add_xp", { amount = self.xp_value })
+		go.animate(".", "scale", go.PLAYBACK_ONCE_FORWARD, vmath.vector3(0, 0, 1), go.EASING_INBACK, 0.08, 0, function()
+			go.delete()
+		end)
+		return
+	end
+
+	if dist <= magnet_radius or self.is_magnetized then
+		self.is_magnetized = true
+		self.speed = self.speed + 600 * dt
+		local move_dist = (BASE_MAGNET_SPEED + self.speed) * dt
+		local dir = delta / math.max(0.001, dist)
+		my_pos = my_pos + dir * math.min(dist, move_dist)
+		my_pos.z = 0.07
+		go.set_position(my_pos)
+	end
+end

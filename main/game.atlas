@@ -1,0 +1,169 @@
+images {
+  image: "/assets/hero/hero_main.png"
+}
+images {
+  image: "/assets/hero/hero_paladin.png"
+}
+images {
+  image: "/assets/hero/hero_rogue.png"
+}
+images {
+  image: "/assets/hero/hero_mage.png"
+}
+images {
+  image: "/assets/hero/hero_barbarian.png"
+}
+images {
+  image: "/assets/enemies/enemy_1.png"
+}
+images {
+  image: "/assets/enemies/enemy_2.png"
+}
+images {
+  image: "/assets/enemies/enemy_3.png"
+}
+images {
+  image: "/assets/enemies/enemy_4.png"
+}
+images {
+  image: "/assets/enemies/enemy_5.png"
+}
+images {
+  image: "/assets/enemies/enemy_6.png"
+}
+images {
+  image: "/assets/enemies/enemy_7.png"
+}
+images {
+  image: "/assets/enemies/enemy_8.png"
+}
+images {
+  image: "/assets/enemies/enemy_9.png"
+}
+images {
+  image: "/assets/enemies/boss_death_knight.png"
+}
+images {
+  image: "/assets/enemies/boss_necromancer.png"
+}
+images {
+  image: "/assets/enemies/boss_hound.png"
+}
+images {
+  image: "/assets/enemies/enemy_slime.png"
+}
+images {
+  image: "/assets/enemies/enemy_skeleton.png"
+}
+images {
+  image: "/assets/enemies/enemy_eye.png"
+}
+images {
+  image: "/assets/enemies/enemy_zombie.png"
+}
+images {
+  image: "/assets/weapons/chest_closed.png"
+}
+images {
+  image: "/assets/weapons/chest_open.png"
+}
+images {
+  image: "/assets/weapons/weapon_1.png"
+}
+images {
+  image: "/assets/weapons/weapon_2.png"
+}
+images {
+  image: "/assets/weapons/weapon_3.png"
+}
+images {
+  image: "/assets/weapons/weapon_4.png"
+}
+images {
+  image: "/assets/weapons/weapon_5.png"
+}
+images {
+  image: "/assets/cards/card_sword.png"
+}
+images {
+  image: "/assets/cards/card_boots.png"
+}
+images {
+  image: "/assets/cards/card_heart.png"
+}
+images {
+  image: "/assets/cards/card_speed.png"
+}
+images {
+  image: "/assets/cards/card_potion.png"
+}
+images {
+  image: "/assets/cards/card_shield.png"
+}
+images {
+  image: "/assets/skills/skill_fire_aura.png"
+}
+images {
+  image: "/assets/skills/skill_frost_aura.png"
+}
+images {
+  image: "/assets/skills/skill_lightning.png"
+}
+images {
+  image: "/assets/skills/skill_thunder.png"
+}
+images {
+  image: "/assets/skills/skill_magnet.png"
+}
+images {
+  image: "/assets/skills/skill_regen.png"
+}
+images {
+  image: "/assets/skills/skill_haste.png"
+}
+images {
+  image: "/assets/skills/xp_gem.png"
+}
+images {
+  image: "/assets/skills/skill_arrow.png"
+}
+images {
+  image: "/assets/skills/aura_circle.png"
+}
+images {
+  image: "/assets/skills/aura_fire.png"
+}
+images {
+  image: "/assets/skills/aura_frost.png"
+}
+images {
+  image: "/assets/ui/ui_frame_timer.png"
+}
+images {
+  image: "/assets/ui/ui_frame_kills.png"
+}
+images {
+  image: "/assets/ui/ui_frame_badge.png"
+}
+images {
+  image: "/assets/ui/ui_frame_header.png"
+}
+images {
+  image: "/assets/ui/ui_frame_panel.png"
+}
+images {
+  image: "/assets/ui/ui_frame_card.png"
+}
+images {
+  image: "/assets/ui/ui_btn_green.png"
+}
+images {
+  image: "/assets/ui/ui_btn_dark.png"
+}
+images {
+  image: "/assets/ui/ui_btn_gold.png"
+}
+images {
+  image: "/assets/ui/ui_btn_red.png"
+}
+extrude_borders: 2

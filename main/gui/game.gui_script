@@ -1,0 +1,886 @@
+local game_state = require("main.modules.game_state")
+local sound_manager = require("main.modules.sound_manager")
+
+local UPGRADE_CATALOG = {
+	{
+		id = "extra_sword",
+		title = "Extra Blade",
+		desc = "+1 orbital sword around your hero",
+		icon = "card_sword",
+		repeatable = false,
+	},
+	{
+		id = "move_speed",
+		title = "Wind Boots",
+		desc = "+12 hero movement speed",
+		icon = "card_boots",
+		repeatable = false,
+	},
+	{
+		id = "max_hp",
+		title = "Ruby Heart",
+		desc = "+25 Max HP & full health restore",
+		icon = "card_heart",
+		repeatable = false,
+	},
+	{
+		id = "spin_speed",
+		title = "Blade Fury",
+		desc = "+20% sword rotation speed",
+		icon = "card_speed",
+		repeatable = false,
+	},
+	{
+		id = "shield_barrier",
+		title = "Iron Shield",
+		desc = "+2 sword damage & higher knockback",
+		icon = "card_shield",
+		repeatable = false,
+	},
+	{
+		id = "heal_potion",
+		title = "Health Potion",
+		desc = "Instantly restores +40 HP",
+		icon = "card_potion",
+		repeatable = true,
+	},
+	{
+		id = "xp_surge",
+		title = "Ancient Crystal",
+		desc = "Instantly awards +50 bonus XP",
+		icon = "xp_gem",
+		repeatable = true,
+	},
+	{
+		id = "sunfire_blast",
+		title = "Sunfire Blast",
+		desc = "Deals 35 holy damage to all monsters",
+		icon = "card_shield",
+		repeatable = true,
+	},
+}
+
+local SKILL_TREE_CATALOG = {
+	fire_aura = {
+		id = "fire_aura",
+		title = "Fire Aura",
+		branch = "AURAS",
+		tier = "Tier 1 - Elemental Choice",
+		desc = "Ignites a burning aura pulling flames into the hero, dealing continuous fire damage to surrounding monsters.",
+		levels = {
+			[1] = "Deals 2 fire damage every 0.6s (radius 63px).",
+			[2] = "Deals 3 fire damage every 0.55s (radius 71px).",
+			[3] = "Deals 4 fire damage every 0.5s (radius 79px).",
+			[4] = "Deals 5 fire damage every 0.45s (radius 87px).",
+			[5] = "Deals 7 fire damage every 0.4s (radius 95px) [Inferno Blaze]!",
+		},
+		icon = "skill_fire_aura",
+		requires = nil,
+		exclusive_with = "frost_aura",
+		cost = 1,
+	},
+	frost_aura = {
+		id = "frost_aura",
+		title = "Frost Aura",
+		branch = "AURAS",
+		tier = "Tier 1 - Elemental Choice",
+		desc = "Summons an icy blizzard radiating outward in shockwaves, chilling and slowing surrounding monsters.",
+		levels = {
+			[1] = "Deals 1 frost damage every 0.65s & slows monsters by 30% (radius 66px).",
+			[2] = "Deals 2 frost damage every 0.6s & slows monsters by 38% (radius 74px).",
+			[3] = "Deals 2 frost damage every 0.55s & slows monsters by 45% (radius 82px).",
+			[4] = "Deals 3 frost damage every 0.5s & slows monsters by 52% (radius 90px).",
+			[5] = "Deals 4 frost damage every 0.45s & slows monsters by 60% (radius 98px) [Absolute Zero]!",
+		},
+		icon = "skill_frost_aura",
+		requires = nil,
+		exclusive_with = "fire_aura",
+		cost = 1,
+	},
+	aura_radiance = {
+		id = "aura_radiance",
+		title = "Aura Radiance",
+		branch = "AURAS",
+		tier = "Tier 2 - Area Amplification",
+		desc = "Drastically enhances the radius, pulsation speed, and power of your chosen active elemental aura.",
+		levels = {
+			[1] = "+8px Aura radius and +5% faster tick frequency.",
+			[2] = "+16px Aura radius and +10% faster tick frequency.",
+			[3] = "+24px Aura radius, +15% tick frequency, and +1 bonus damage.",
+			[4] = "+32px Aura radius, +20% tick frequency, and +2 bonus damage.",
+			[5] = "+40px Aura radius, +25% tick frequency, and +3 bonus damage [Cosmic Domain]!",
+		},
+		icon = "aura_circle",
+		requires_aura = true,
+		cost = 1,
+	},
+	lightning = {
+		id = "lightning",
+		title = "Lightning Strike",
+		branch = "LIGHTNING",
+		tier = "Tier 1 - Celestial Shock",
+		desc = "Periodically calls down a powerful electric strike from the heavens on the closest threat.",
+		levels = {
+			[1] = "Strikes nearest enemy every 2.8s for 25 shock damage.",
+			[2] = "Strikes every 2.4s for 34 shock damage.",
+			[3] = "Strikes every 2.0s for 43 shock damage.",
+			[4] = "Strikes every 1.6s for 52 shock damage.",
+			[5] = "Strikes every 1.2s for 65 shock damage [Divine Wrath]!",
+		},
+		icon = "skill_lightning",
+		requires = nil,
+		cost = 1,
+	},
+	chain_lightning = {
+		id = "chain_lightning",
+		title = "Chain Bolt",
+		branch = "LIGHTNING",
+		tier = "Tier 2 - Multi-Target Zap",
+		desc = "Empowers your lightning strike to arc and fork to multiple surrounding enemies simultaneously.",
+		levels = {
+			[1] = "Arcs to 1 additional enemy for 60% damage.",
+			[2] = "Arcs to 2 additional enemies for 70% damage.",
+			[3] = "Arcs to 3 additional enemies for 80% damage.",
+			[4] = "Arcs to 4 additional enemies for 90% damage.",
+			[5] = "Arcs to 5 additional enemies for 100% full damage [Tesla Cascade]!",
+		},
+		icon = "skill_lightning",
+		requires = "lightning",
+		cost = 1,
+	},
+	thunderstorm = {
+		id = "thunderstorm",
+		title = "Thunderstorm",
+		branch = "LIGHTNING",
+		tier = "Tier 3 - Cataclysmic Storm",
+		desc = "Summons violent storm clouds that bombard random clusters of monsters with devastating thunder.",
+		levels = {
+			[1] = "Calls down 2 thunderbolts every 3.5s for 21 damage each.",
+			[2] = "Calls down 3 thunderbolts every 3.1s for 28 damage each.",
+			[3] = "Calls down 4 thunderbolts every 2.7s for 35 damage each.",
+			[4] = "Calls down 5 thunderbolts every 2.3s for 42 damage each.",
+			[5] = "Calls down 6 thunderbolts every 1.8s for 50 damage each [Tempest Cataclysm]!",
+		},
+		icon = "skill_thunder",
+		requires = "chain_lightning",
+		cost = 1,
+	},
+	magnet = {
+		id = "magnet",
+		title = "Magnetism",
+		branch = "MASTERY",
+		tier = "Tier 1 - Crystal Attraction",
+		desc = "Extends your magnetic energy field to pull distant XP crystals directly into your hero.",
+		levels = {
+			[1] = "+70% magnet pickup radius (85px).",
+			[2] = "+140% magnet pickup radius (120px).",
+			[3] = "+210% magnet pickup radius (155px).",
+			[4] = "+280% magnet pickup radius (190px).",
+			[5] = "+350% magnet pickup radius (225px) [Vacuum Singularity]!",
+		},
+		icon = "skill_magnet",
+		requires = nil,
+		cost = 1,
+	},
+	vitality = {
+		id = "vitality",
+		title = "Titan Blood",
+		branch = "MASTERY",
+		tier = "Tier 2 - Survival Mastery",
+		desc = "Hardens your vital essence, permanently increasing Max HP and providing continuous health regeneration.",
+		levels = {
+			[1] = "+20 Max HP & 0.75 HP/sec regeneration.",
+			[2] = "+40 Max HP & 1.5 HP/sec regeneration.",
+			[3] = "+60 Max HP & 2.25 HP/sec regeneration.",
+			[4] = "+80 Max HP & 3.0 HP/sec regeneration.",
+			[5] = "+100 Max HP & 3.75 HP/sec regeneration [Immortal Heart]!",
+		},
+		icon = "skill_regen",
+		requires = "magnet",
+		cost = 1,
+	},
+	haste = {
+		id = "haste",
+		title = "Swift Fury",
+		branch = "MASTERY",
+		tier = "Tier 3 - Agility Mastery",
+		desc = "Imbues your hero with furious agility, boosting movement speed and accelerating orbital blades.",
+		levels = {
+			[1] = "+4% movement speed & +15% sword rotation speed.",
+			[2] = "+8% movement speed & +25% sword rotation speed.",
+			[3] = "+12% movement speed & +35% sword rotation speed.",
+			[4] = "+16% movement speed & +45% sword rotation speed.",
+			[5] = "+20% movement speed & +60% sword rotation speed [Lightning Reflexes]!",
+		},
+		icon = "skill_haste",
+		requires = "vitality",
+		cost = 1,
+	},
+}
+
+local function refresh_hp(self)
+	local health = game_state.health
+	local max_health = math.max(1, game_state.max_health)
+	local ratio = health / max_health
+	if ratio < 0 then
+		ratio = 0
+	end
+	if ratio > 1 then
+		ratio = 1
+	end
+
+	local full_width = 220
+	gui.set_size(self.hp_fill, vmath.vector3(full_width * ratio, 22, 0))
+	gui.set_text(self.hp_label, string.format("HP %d/%d", health, max_health))
+end
+
+local function refresh_xp(self)
+	local xp = game_state.xp or 0
+	local xp_next = math.max(1, game_state.xp_next or 65)
+	local is_maxed = game_state.is_skill_tree_maxed()
+
+	local ratio
+	if is_maxed then
+		ratio = 1.0
+		gui.set_text(self.xp_label, string.format("LVL %d [MAX] - MASTERED", game_state.level))
+	else
+		ratio = math.min(1.0, math.max(0.0, xp / xp_next))
+		gui.set_text(self.xp_label, string.format("LVL %d - %d/%d XP", game_state.level, xp, xp_next))
+	end
+
+	local full_width = 220
+	gui.set_size(self.xp_fill, vmath.vector3(full_width * ratio, 16, 0))
+	gui.set_text(self.skills_hud_label, string.format("SKILLS [%d]", game_state.skill_points))
+
+	if game_state.skill_points > 0 and not is_maxed then
+		local pulse = 0.5 + 0.5 * math.sin((os.clock() or 0) * 6.0)
+		gui.set_color(self.skills_hud_btn, vmath.vector3(0.85 + 0.25 * pulse, 0.8 + 0.2 * pulse, 0.65 + 0.35 * pulse))
+	else
+		gui.set_color(self.skills_hud_btn, vmath.vector3(0.82, 0.82, 0.82))
+	end
+end
+
+local function refresh_timer(self)
+	local mins = math.floor(self.elapsed_time / 60)
+	local secs = math.floor(self.elapsed_time % 60)
+	gui.set_text(self.timer_label, string.format("%02d:%02d", mins, secs))
+end
+
+local function refresh_kills(self)
+	gui.set_text(self.kills_label, string.format("KILLS: %d", self.kills))
+end
+
+local function show_pause(self, visible)
+	gui.set_enabled(self.pause_root, visible)
+	gui.set_enabled(self.pause_btn, not visible and not game_state.dead and not self.upgrade_showing and not self.skill_tree_showing)
+end
+
+local function show_death(self, visible)
+	gui.set_enabled(self.death_root, visible)
+	gui.set_enabled(self.pause_btn, not visible)
+	if visible then
+		gui.set_enabled(self.pause_root, false)
+		gui.set_enabled(self.upgrade_root, false)
+		gui.set_enabled(self.skill_tree_root, false)
+		self.upgrade_showing = false
+		self.skill_tree_showing = false
+	end
+end
+
+local function set_paused(self, paused)
+	if game_state.dead or self.upgrade_showing or self.skill_tree_showing then
+		return
+	end
+	game_state.set_paused(paused)
+	show_pause(self, paused)
+end
+
+-- ====================================================================
+-- SKILL TREE SCREEN CONTROLLER
+-- ====================================================================
+
+local function update_tree_node_visuals(self)
+	gui.set_text(self.tree_sp_label, string.format("SKILL POINTS: %d", game_state.skill_points))
+
+	for skill_id, skill in pairs(SKILL_TREE_CATALOG) do
+		local node = self.tree_nodes[skill_id]
+		if node then
+			local lvl = game_state.get_skill_level(skill_id)
+			local can, reason = game_state.can_unlock_skill(skill_id)
+			local is_selected = (skill_id == self.selected_skill_id)
+
+			-- Display Level text directly on node name
+			if lvl >= 5 then
+				gui.set_text(node.name, string.format("%s [MAX]", skill.title))
+			elseif lvl > 0 then
+				gui.set_text(node.name, string.format("%s (Lv %d)", skill.title, lvl))
+			else
+				gui.set_text(node.name, skill.title)
+			end
+
+			-- Visual node box state
+			if lvl >= 5 then
+				gui.set_color(node.box, vmath.vector3(0.18, 0.62, 0.35)) -- Emerald green for maxed
+				gui.set_color(node.icon, vmath.vector3(1.0, 1.0, 1.0))
+			elseif lvl > 0 then
+				gui.set_color(node.box, vmath.vector3(0.2, 0.45, 0.58)) -- Teal for active levels
+				gui.set_color(node.icon, vmath.vector3(1.0, 1.0, 1.0))
+			elseif can then
+				gui.set_color(node.box, vmath.vector3(0.62, 0.50, 0.16)) -- Gold: ready to learn
+				gui.set_color(node.icon, vmath.vector3(1.0, 0.95, 0.75))
+			elseif reason == "NEED_SP" then
+				gui.set_color(node.box, vmath.vector3(0.26, 0.32, 0.44)) -- Slate: prerequisite met but 0 SP
+				gui.set_color(node.icon, vmath.vector3(0.85, 0.85, 0.9))
+			else
+				gui.set_color(node.box, vmath.vector3(0.11, 0.12, 0.16)) -- Dark: locked/exclusive
+				gui.set_color(node.icon, vmath.vector3(0.35, 0.35, 0.4))
+			end
+
+			-- Selection scale highlight
+			if is_selected then
+				gui.set_scale(node.box, vmath.vector3(1.15, 1.15, 1.0))
+			else
+				gui.set_scale(node.box, vmath.vector3(1.0, 1.0, 1.0))
+			end
+		end
+	end
+end
+
+local function select_tree_node(self, skill_id)
+	local skill = SKILL_TREE_CATALOG[skill_id]
+	if not skill then
+		return
+	end
+	self.selected_skill_id = skill_id
+
+	local lvl = game_state.get_skill_level(skill_id)
+	local can, reason = game_state.can_unlock_skill(skill_id)
+
+	gui.set_text(self.tree_selected_label, string.format("Selected: %s (Level %d/5)", skill.title, lvl))
+
+	if lvl >= 5 then
+		gui.set_text(self.tree_learn_label, "MAX LEVEL")
+		gui.set_color(self.tree_learn_btn, vmath.vector3(0.5, 0.65, 0.5))
+	elseif can then
+		gui.set_text(self.tree_learn_label, string.format("UPGRADE -> LV %d (1 SP)", lvl + 1))
+		gui.set_color(self.tree_learn_btn, vmath.vector3(1.0, 1.0, 1.0))
+	elseif reason == "NEED_SP" then
+		gui.set_text(self.tree_learn_label, "NEED 1 SP")
+		gui.set_color(self.tree_learn_btn, vmath.vector3(0.65, 0.55, 0.4))
+	elseif reason == "EXCLUSIVE_FROST" then
+		gui.set_text(self.tree_learn_label, "LOCKED (FROST CHOSEN)")
+		gui.set_color(self.tree_learn_btn, vmath.vector3(0.35, 0.35, 0.38))
+	elseif reason == "EXCLUSIVE_FIRE" then
+		gui.set_text(self.tree_learn_label, "LOCKED (FIRE CHOSEN)")
+		gui.set_color(self.tree_learn_btn, vmath.vector3(0.35, 0.35, 0.38))
+	else
+		gui.set_text(self.tree_learn_label, "LOCKED")
+		gui.set_color(self.tree_learn_btn, vmath.vector3(0.35, 0.35, 0.38))
+	end
+
+	update_tree_node_visuals(self)
+end
+
+local function show_skill_tree(self)
+	if game_state.dead then
+		return
+	end
+
+	self.skill_tree_showing = true
+	self.input_cooldown = 0.3
+	game_state.set_paused(true)
+	sound_manager.play_chest_open()
+
+	gui.set_enabled(self.pause_btn, false)
+	gui.set_enabled(self.pause_root, false)
+	gui.set_enabled(self.upgrade_root, false)
+	self.upgrade_showing = false
+
+	gui.set_enabled(self.skill_tree_root, true)
+	gui.set_scale(self.skill_tree_root, vmath.vector4(1, 1, 1, 0))
+	gui.set_enabled(self.tooltip_root, false)
+
+	select_tree_node(self, self.selected_skill_id or "fire_aura")
+	print("DEBUG: SKILL TREE OPENED")
+end
+
+local function close_skill_tree(self)
+	self.skill_tree_showing = false
+	gui.set_enabled(self.skill_tree_root, false)
+	gui.set_enabled(self.tooltip_root, false)
+	game_state.set_paused(false)
+	gui.set_enabled(self.pause_btn, true)
+	refresh_xp(self)
+	print("DEBUG: SKILL TREE CLOSED")
+end
+
+local function learn_selected_skill(self)
+	if not self.selected_skill_id then
+		return
+	end
+
+	local ok, next_lvl = game_state.unlock_skill(self.selected_skill_id)
+	if ok then
+		sound_manager.play_slash()
+		select_tree_node(self, self.selected_skill_id)
+		refresh_xp(self)
+		refresh_hp(self)
+		print("SKILL UPGRADED: " .. tostring(self.selected_skill_id) .. " to Level " .. tostring(next_lvl))
+	end
+end
+
+-- ====================================================================
+-- RANDOM UPGRADE CARDS CONTROLLER (CHESTS)
+-- ====================================================================
+
+local function pick_random_upgrades()
+	local available = {}
+	for _, up in ipairs(UPGRADE_CATALOG) do
+		if up.repeatable or not game_state.is_card_maxed(up.id) then
+			table.insert(available, up)
+		end
+	end
+
+	-- If available pool is small, ensure repeatable utility cards fill the choices
+	if #available < 3 then
+		for _, up in ipairs(UPGRADE_CATALOG) do
+			if up.repeatable then
+				table.insert(available, up)
+			end
+		end
+	end
+
+	local picked = {}
+	for i = 1, 3 do
+		if #available > 0 then
+			local idx = math.random(1, #available)
+			table.insert(picked, available[idx])
+			table.remove(available, idx)
+		end
+	end
+	return picked
+end
+
+local function show_upgrades(self)
+	if game_state.dead or self.skill_tree_showing then
+		return
+	end
+
+	self.upgrade_showing = true
+	self.input_cooldown = 0.45
+	game_state.set_paused(true)
+	sound_manager.play_chest_open()
+
+	gui.set_enabled(self.pause_btn, false)
+	gui.set_enabled(self.pause_root, false)
+
+	local picked = pick_random_upgrades()
+	self.active_card_ids = {}
+
+	for i = 1, 3 do
+		local card = picked[i]
+		if card then
+			self.active_card_ids[i] = card.id
+			local slot = self.card_slots[i]
+			gui.set_text(slot.title, card.title)
+			gui.set_text(slot.desc, card.desc)
+			gui.play_flipbook(slot.icon, hash(card.icon))
+		end
+	end
+
+	gui.set_enabled(self.upgrade_root, true)
+	gui.set_scale(self.upgrade_root, vmath.vector4(1, 1, 1, 0))
+	print("DEBUG: UPGRADE MODAL SHOWN - waiting for player selection")
+end
+
+local function select_upgrade(self, index)
+	local upgrade_id = self.active_card_ids and self.active_card_ids[index]
+	if not upgrade_id then
+		return
+	end
+
+	game_state.record_card_upgrade(upgrade_id)
+	sound_manager.play_slash()
+	msg.post("/hero_ob#controller", "apply_upgrade", { upgrade_id = upgrade_id })
+
+	self.upgrade_showing = false
+	gui.set_enabled(self.upgrade_root, false)
+	game_state.set_paused(false)
+	gui.set_enabled(self.pause_btn, true)
+	refresh_hp(self)
+	refresh_xp(self)
+	print("UPGRADE SELECTED: " .. tostring(upgrade_id))
+end
+
+-- ====================================================================
+-- INITIALIZATION & LIFECYCLE
+-- ====================================================================
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+
+	self.elapsed_time = 0
+	self.kills = 0
+	self.upgrade_showing = false
+	self.skill_tree_showing = false
+	self.active_card_ids = {}
+	self.selected_skill_id = "fire_aura"
+
+	-- Top HUD
+	self.hp_bg = gui.get_node("hp_bg")
+	self.hp_fill = gui.get_node("hp_fill")
+	self.hp_label = gui.get_node("hp_label")
+	self.xp_bg = gui.get_node("xp_bg")
+	self.xp_fill = gui.get_node("xp_fill")
+	self.xp_label = gui.get_node("xp_label")
+	self.timer_label = gui.get_node("timer_label")
+	self.kills_label = gui.get_node("kills_label")
+	self.skills_hud_btn = gui.get_node("skills_hud_btn")
+	self.skills_hud_label = gui.get_node("skills_hud_label")
+	self.pause_btn = gui.get_node("pause_btn")
+
+	-- Modals
+	self.pause_root = gui.get_node("pause_root")
+	self.resume_btn = gui.get_node("resume_btn")
+	self.death_root = gui.get_node("death_root")
+	self.retry_btn = gui.get_node("retry_btn")
+	self.upgrade_root = gui.get_node("upgrade_root")
+	self.skill_tree_root = gui.get_node("skill_tree_root")
+
+	-- Skill Tree Elements
+	self.tree_sp_label = gui.get_node("tree_sp_label")
+	self.tree_selected_label = gui.get_node("tree_selected_label")
+	self.tree_learn_btn = gui.get_node("tree_learn_btn")
+	self.tree_learn_label = gui.get_node("tree_learn_label")
+	self.tree_close_btn = gui.get_node("tree_close_btn")
+	self.tree_close_label = gui.get_node("tree_close_label")
+
+	-- Tooltip Elements
+	self.tooltip_root = gui.get_node("tooltip_root")
+	self.tooltip_title = gui.get_node("tooltip_title")
+	self.tooltip_tier = gui.get_node("tooltip_tier")
+	self.tooltip_desc = gui.get_node("tooltip_desc")
+	self.tooltip_status = gui.get_node("tooltip_status")
+
+	self.tree_nodes = {
+		fire_aura = {
+			box = gui.get_node("node_fire_1"),
+			icon = gui.get_node("node_fire_1_icon"),
+			name = gui.get_node("node_fire_1_name"),
+		},
+		frost_aura = {
+			box = gui.get_node("node_frost"),
+			icon = gui.get_node("node_frost_icon"),
+			name = gui.get_node("node_frost_name"),
+		},
+		aura_radiance = {
+			box = gui.get_node("node_fire_2"),
+			icon = gui.get_node("node_fire_2_icon"),
+			name = gui.get_node("node_fire_2_name"),
+		},
+		lightning = {
+			box = gui.get_node("node_light_1"),
+			icon = gui.get_node("node_light_1_icon"),
+			name = gui.get_node("node_light_1_name"),
+		},
+		chain_lightning = {
+			box = gui.get_node("node_light_2"),
+			icon = gui.get_node("node_light_2_icon"),
+			name = gui.get_node("node_light_2_name"),
+		},
+		thunderstorm = {
+			box = gui.get_node("node_thunder"),
+			icon = gui.get_node("node_thunder_icon"),
+			name = gui.get_node("node_thunder_name"),
+		},
+		magnet = {
+			box = gui.get_node("node_mag_1"),
+			icon = gui.get_node("node_mag_1_icon"),
+			name = gui.get_node("node_mag_1_name"),
+		},
+		vitality = {
+			box = gui.get_node("node_vitality"),
+			icon = gui.get_node("node_vitality_icon"),
+			name = gui.get_node("node_vitality_name"),
+		},
+		haste = {
+			box = gui.get_node("node_haste"),
+			icon = gui.get_node("node_haste_icon"),
+			name = gui.get_node("node_haste_name"),
+		},
+	}
+
+	-- Chest Card Slots
+	self.card_slots = {
+		{
+			bg = gui.get_node("card_1_bg"),
+			btn = gui.get_node("card_1_btn"),
+			icon = gui.get_node("card_1_icon"),
+			title = gui.get_node("card_1_title"),
+			desc = gui.get_node("card_1_desc"),
+		},
+		{
+			bg = gui.get_node("card_2_bg"),
+			btn = gui.get_node("card_2_btn"),
+			icon = gui.get_node("card_2_icon"),
+			title = gui.get_node("card_2_title"),
+			desc = gui.get_node("card_2_desc"),
+		},
+		{
+			bg = gui.get_node("card_3_bg"),
+			btn = gui.get_node("card_3_btn"),
+			icon = gui.get_node("card_3_icon"),
+			title = gui.get_node("card_3_title"),
+			desc = gui.get_node("card_3_desc"),
+		},
+	}
+
+	gui.set_enabled(self.hp_bg, true)
+	gui.set_enabled(self.xp_bg, true)
+	gui.set_enabled(self.pause_btn, true)
+	gui.set_enabled(self.skills_hud_btn, true)
+	gui.set_enabled(self.upgrade_root, false)
+	gui.set_enabled(self.skill_tree_root, false)
+	gui.set_enabled(self.tooltip_root, false)
+	show_pause(self, false)
+	show_death(self, false)
+
+	refresh_hp(self)
+	refresh_xp(self)
+	refresh_timer(self)
+	refresh_kills(self)
+	print("GUI ready with Skill Tree, XP System, and Upgrades")
+end
+
+function update(self, dt)
+	refresh_hp(self)
+	refresh_xp(self)
+
+	if self.input_cooldown and self.input_cooldown > 0 then
+		self.input_cooldown = self.input_cooldown - dt
+	end
+
+	if game_state.is_running() then
+		self.elapsed_time = self.elapsed_time + dt
+		refresh_timer(self)
+	end
+end
+
+function on_message(self, message_id, message)
+	if message_id == hash("update_health") then
+		game_state.set_health(message.health or game_state.health, message.max_health or game_state.max_health)
+		refresh_hp(self)
+		return
+	end
+
+	if message_id == hash("update_xp") then
+		refresh_xp(self)
+		return
+	end
+
+	if message_id == hash("update_kills") then
+		self.kills = message.kills or (self.kills + 1)
+		refresh_kills(self)
+		return
+	end
+
+	if message_id == hash("player_died") then
+		game_state.set_dead(true)
+		show_death(self, true)
+		return
+	end
+
+	if message_id == hash("show_upgrade_cards") then
+		show_upgrades(self)
+		return
+	end
+
+	if message_id == hash("show_skill_tree") then
+		show_skill_tree(self)
+		return
+	end
+
+	if message_id == hash("set_pause") then
+		set_paused(self, message.paused)
+	end
+end
+
+function on_input(self, action_id, action)
+	if action_id == hash("pause_toggle") and action.pressed then
+		if not game_state.dead and not self.upgrade_showing and not self.skill_tree_showing then
+			set_paused(self, not game_state.paused)
+		end
+		return true
+	end
+
+	-- Tooltip hover tracking when Skill Tree modal is open
+	if self.skill_tree_showing and action.x and action.y then
+		local hovered_id = nil
+		for skill_id, node in pairs(self.tree_nodes) do
+			if gui.pick_node(node.box, action.x, action.y)
+				or gui.pick_node(node.icon, action.x, action.y)
+				or gui.pick_node(node.name, action.x, action.y) then
+				hovered_id = skill_id
+				break
+			end
+		end
+
+		if hovered_id then
+			local skill = SKILL_TREE_CATALOG[hovered_id]
+			local lvl = game_state.get_skill_level(hovered_id)
+			local can, reason = game_state.can_unlock_skill(hovered_id)
+
+			gui.set_enabled(self.tooltip_root, true)
+			gui.set_text(self.tooltip_title, string.format("%s  [Level %d/5]", skill.title, lvl))
+			gui.set_text(self.tooltip_tier, skill.tier)
+
+			-- Build description with current and next level preview
+			local desc_str = skill.desc .. "\n"
+			if lvl > 0 and skill.levels and skill.levels[lvl] then
+				desc_str = desc_str .. string.format("[Current Lv %d]: %s\n", lvl, skill.levels[lvl])
+			end
+			if lvl < 5 and skill.levels and skill.levels[lvl + 1] then
+				desc_str = desc_str .. string.format("[Next Lv %d]: %s", lvl + 1, skill.levels[lvl + 1])
+			elseif lvl >= 5 then
+				desc_str = desc_str .. "[MAXIMUM LEVEL REACHED]"
+			end
+			gui.set_text(self.tooltip_desc, desc_str)
+
+			if lvl >= 5 then
+				gui.set_text(self.tooltip_status, "STATUS: MASTERED (MAX LEVEL 5/5)")
+				gui.set_color(self.tooltip_status, vmath.vector3(0.3, 1.0, 0.5))
+			elseif reason == "EXCLUSIVE_FROST" then
+				gui.set_text(self.tooltip_status, "STATUS: LOCKED (Exclusive: Frost Aura Chosen)")
+				gui.set_color(self.tooltip_status, vmath.vector3(0.95, 0.35, 0.35))
+			elseif reason == "EXCLUSIVE_FIRE" then
+				gui.set_text(self.tooltip_status, "STATUS: LOCKED (Exclusive: Fire Aura Chosen)")
+				gui.set_color(self.tooltip_status, vmath.vector3(0.95, 0.35, 0.35))
+			elseif reason == "REQUIRES_AURA" then
+				gui.set_text(self.tooltip_status, "STATUS: LOCKED (Requires Fire Aura or Frost Aura)")
+				gui.set_color(self.tooltip_status, vmath.vector3(0.95, 0.35, 0.35))
+			elseif reason == "REQUIRES_LIGHTNING" then
+				gui.set_text(self.tooltip_status, "STATUS: LOCKED (Requires Lightning Strike Lv 1)")
+				gui.set_color(self.tooltip_status, vmath.vector3(0.95, 0.35, 0.35))
+			elseif reason == "REQUIRES_CHAIN" then
+				gui.set_text(self.tooltip_status, "STATUS: LOCKED (Requires Chain Bolt Lv 1)")
+				gui.set_color(self.tooltip_status, vmath.vector3(0.95, 0.35, 0.35))
+			elseif reason == "REQUIRES_MAGNET" then
+				gui.set_text(self.tooltip_status, "STATUS: LOCKED (Requires Magnetism Lv 1)")
+				gui.set_color(self.tooltip_status, vmath.vector3(0.95, 0.35, 0.35))
+			elseif reason == "REQUIRES_VITALITY" then
+				gui.set_text(self.tooltip_status, "STATUS: LOCKED (Requires Titan Blood Lv 1)")
+				gui.set_color(self.tooltip_status, vmath.vector3(0.95, 0.35, 0.35))
+			elseif reason == "NEED_SP" then
+				gui.set_text(self.tooltip_status, string.format("STATUS: AVAILABLE (Need 1 SP for Lv %d)", lvl + 1))
+				gui.set_color(self.tooltip_status, vmath.vector3(1.0, 0.85, 0.3))
+			else
+				gui.set_text(self.tooltip_status, string.format("STATUS: READY TO UPGRADE -> LEVEL %d!", lvl + 1))
+				gui.set_color(self.tooltip_status, vmath.vector3(0.4, 1.0, 0.6))
+			end
+
+			-- Position tooltip cleanly clamped inside the panel
+			local node_pos = gui.get_position(self.tree_nodes[hovered_id].box)
+			local tip_x = math.max(-240, math.min(240, node_pos.x))
+			local tip_y
+			if node_pos.y < -50 then
+				tip_y = node_pos.y + 125
+			else
+				tip_y = node_pos.y - 125
+			end
+			gui.set_position(self.tooltip_root, vmath.vector3(tip_x, tip_y, 0))
+		else
+			gui.set_enabled(self.tooltip_root, false)
+		end
+	end
+
+	if action_id ~= hash("touch") then
+		return false
+	end
+
+	if not action.pressed then
+		return false
+	end
+
+	-- 1. Skill Tree modal click interaction
+	if self.skill_tree_showing then
+		if self.input_cooldown and self.input_cooldown > 0 then
+			return true
+		end
+
+		if (self.tree_close_btn and gui.pick_node(self.tree_close_btn, action.x, action.y))
+			or (self.tree_close_label and gui.pick_node(self.tree_close_label, action.x, action.y)) then
+			close_skill_tree(self)
+			return true
+		end
+
+		if (self.tree_learn_btn and gui.pick_node(self.tree_learn_btn, action.x, action.y))
+			or (self.tree_learn_label and gui.pick_node(self.tree_learn_label, action.x, action.y)) then
+			learn_selected_skill(self)
+			return true
+		end
+
+		for skill_id, node in pairs(self.tree_nodes) do
+			if gui.pick_node(node.box, action.x, action.y)
+				or gui.pick_node(node.icon, action.x, action.y)
+				or gui.pick_node(node.name, action.x, action.y) then
+				select_tree_node(self, skill_id)
+				sound_manager.play_slash()
+				return true
+			end
+		end
+
+		return true -- Consume click while modal is open
+	end
+
+	-- 2. Upgrade cards modal interaction
+	if self.upgrade_showing then
+		if self.input_cooldown and self.input_cooldown > 0 then
+			return true
+		end
+		for i = 1, 3 do
+			local slot = self.card_slots[i]
+			if gui.pick_node(slot.btn, action.x, action.y)
+				or gui.pick_node(slot.bg, action.x, action.y)
+				or gui.pick_node(slot.icon, action.x, action.y)
+				or gui.pick_node(slot.title, action.x, action.y)
+				or gui.pick_node(slot.desc, action.x, action.y) then
+				select_upgrade(self, i)
+				return true
+			end
+		end
+		return true
+	end
+
+	-- 3. Game over / retry interaction
+	if game_state.dead then
+		if gui.pick_node(self.retry_btn, action.x, action.y) then
+			game_state.reset()
+			sys.reboot()
+			return true
+		end
+		return true
+	end
+
+	-- 4. Pause menu interaction
+	if game_state.paused then
+		if gui.pick_node(self.resume_btn, action.x, action.y) then
+			set_paused(self, false)
+			return true
+		end
+		return true
+	end
+
+	-- 5. Open Skill Tree button from HUD
+	if gui.pick_node(self.skills_hud_btn, action.x, action.y) then
+		show_skill_tree(self)
+		return true
+	end
+
+	-- 6. Pause button
+	if gui.pick_node(self.pause_btn, action.x, action.y) then
+		set_paused(self, true)
+		return true
+	end
+
+	return false
+end

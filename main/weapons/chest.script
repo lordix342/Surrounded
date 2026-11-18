@@ -1,0 +1,52 @@
+local game_state = require("main.modules.game_state")
+
+local FADE_DURATION = 5
+local OPEN_DISTANCE = 16
+
+function init(self)
+	self.opened = false
+	self.fade_timer = 0
+	self.hero_url = msg.url("/hero_ob")
+
+	local pos = go.get_position()
+	pos.z = 0.08
+	go.set_position(pos)
+end
+
+local function open_chest(self)
+	if self.opened then
+		return
+	end
+	self.opened = true
+	sprite.play_flipbook("#sprite", hash("chest_open"))
+	msg.post(self.hero_url, "chest_opened")
+	print("Chest opened")
+end
+
+function update(self, dt)
+	if not game_state.is_running() and not self.opened then
+		return
+	end
+
+	if not self.opened then
+		local hero_pos = go.get_position(self.hero_url)
+		local my_pos = go.get_position()
+		local delta = hero_pos - my_pos
+		delta.z = 0
+		if vmath.length(delta) <= OPEN_DISTANCE then
+			open_chest(self)
+		end
+		return
+	end
+
+	self.fade_timer = self.fade_timer + dt
+	local alpha = 1 - (self.fade_timer / FADE_DURATION)
+	if alpha < 0 then
+		alpha = 0
+	end
+	go.set("#sprite", "tint.w", alpha)
+
+	if self.fade_timer >= FADE_DURATION then
+		go.delete()
+	end
+end

@@ -1,0 +1,46 @@
+go.property("damage", 1)
+go.property("is_crit", false)
+go.property("is_level_up", false)
+
+function init(self)
+	local pos = go.get_position()
+	pos.z = 0.5
+	local drift_x = (math.random() - 0.5) * 16
+	pos.x = pos.x + drift_x
+	go.set_position(pos)
+
+	if self.is_level_up then
+		label.set_text("#label", "LEVEL UP!")
+		go.set("#label", "color", vmath.vector4(1.0, 0.85, 0.1, 1.0))
+		go.set_scale(vmath.vector3(1.2, 1.2, 1.0))
+		go.animate(".", "scale", go.PLAYBACK_ONCE_FORWARD, vmath.vector3(0.95, 0.95, 1.0), go.EASING_OUTBACK, 0.6)
+	else
+		local dmg = math.floor(self.damage or 1)
+		if self.is_crit then
+			label.set_text("#label", tostring(dmg) .. "!")
+			go.set("#label", "color", vmath.vector4(1.0, 0.25, 0.15, 1.0))
+			go.set_scale(vmath.vector3(1.15, 1.15, 1.0))
+			go.animate(".", "scale", go.PLAYBACK_ONCE_FORWARD, vmath.vector3(0.85, 0.85, 1.0), go.EASING_OUTQUAD, 0.55)
+		else
+			label.set_text("#label", tostring(dmg))
+			go.set("#label", "color", vmath.vector4(1.0, 0.92, 0.25, 1.0))
+			go.set_scale(vmath.vector3(0.85, 0.85, 1.0))
+			go.animate(".", "scale", go.PLAYBACK_ONCE_FORWARD, vmath.vector3(0.65, 0.65, 1.0), go.EASING_OUTQUAD, 0.5)
+		end
+	end
+
+	-- Float upward
+	local target_y = pos.y + 28
+	go.animate(".", "position.y", go.PLAYBACK_ONCE_FORWARD, target_y, go.EASING_OUTQUAD, 0.55)
+
+	-- Fade out
+	timer.delay(0.32, false, function()
+		go.animate("#label", "color.w", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_INQUAD, 0.25)
+		go.animate("#label", "outline.w", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_INQUAD, 0.25)
+	end)
+
+	-- Auto remove
+	timer.delay(0.60, false, function()
+		go.delete()
+	end)
+end

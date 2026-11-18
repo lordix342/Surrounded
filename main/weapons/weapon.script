@@ -1,0 +1,118 @@
+local game_state = require("main.modules.game_state")
+local sound_manager = require("main.modules.sound_manager")
+
+local HIT_INTERVAL = 0.25
+
+go.property("slot_index", 1)
+
+local RADIUS_BY_LEVEL = { 24, 30, 36, 42, 48 }
+local DAMAGE_BY_LEVEL = { 2, 4, 6, 9, 12 }
+local ROTATION_SPEED_BY_LEVEL = { 2.5, 3.2, 3.8, 4.4, 5.0 }
+
+local function clamp_level(level)
+	if level < 1 then
+		return 1
+	end
+	if level > 5 then
+		return 5
+	end
+	return level
+end
+
+local function is_finite_number(value)
+	return value == value and value > -10000 and value < 10000
+end
+
+local function is_finite_vector3(v)
+	return is_finite_number(v.x) and is_finite_number(v.y) and is_finite_number(v.z)
+end
+
+local function setup_level(self, level)
+	self.level = clamp_level(level)
+	self.radius = RADIUS_BY_LEVEL[self.level]
+	self.damage = DAMAGE_BY_LEVEL[self.level]
+	self.rotation_speed = ROTATION_SPEED_BY_LEVEL[self.level]
+	sprite.play_flipbook("#sprite", hash("weapon_" .. tostring(self.level)))
+end
+
+local function setup_slot(self, slot_index, slot_count)
+	self.slot_index = slot_index or self.slot_index or 1
+	self.slot_count = math.max(1, slot_count or self.slot_count or 1)
+	local base_angle = ((self.slot_index - 1) / self.slot_count) * (math.pi * 2)
+	self.angle = base_angle
+end
+
+function init(self)
+	self.hero_url = msg.url("/hero_ob")
+	self.hit_timers = {}
+	self.slot_count = 2
+	setup_slot(self, self.slot_index, self.slot_count)
+	setup_level(self, 1)
+end
+
+function update(self, dt)
+	if not game_state.is_running() then
+		return
+	end
+
+	for key, timer in pairs(self.hit_timers) do
+		if timer > 0 then
+			self.hit_timers[key] = timer - dt
+		else
+			self.hit_timers[key] = nil
+		end
+	end
+
+	self.angle = self.angle + self.rotation_speed * dt
+
+	local hero_pos = go.get_position(self.hero_url)
+	if not is_finite_vector3(hero_pos) then
+		return
+	end
+
+	local offset = vmath.vector3(math.cos(self.angle), math.sin(self.angle), 0) * self.radius
+	local new_pos = hero_pos + offset
+	new_pos.z = 0.15
+	if is_finite_vector3(new_pos) then
+		go.set_position(new_pos)
+	end
+end
+
+function on_message(self, message_id, message)
+	if message_id == hash("collision_response") then
+		if message.other_group == hash("enemy") then
+			local enemy_id = message.other_id
+			local key = tostring(enemy_id)
+			local timer = self.hit_timers[key] or 0
+			if timer <= 0 then
+				self.hit_timers[key] = HIT_INTERVAL
+				sound_manager.play_slash()
+				msg.post(enemy_id, "weapon_hit", {
+					damage = self.damage,
+					source_pos = go.get_position(),
+				})
+			end
+		end
+		return
+	end
+
+	if message_id == hash("configure_weapon") then
+		setup_level(self, message.level or self.level or 1)
+		setup_slot(self, message.slot_index or self.slot_index, message.slot_count or self.slot_count)
+		return
+	end
+
+	if message_id == hash("boost_spin") then
+		self.rotation_speed = self.rotation_speed * (message.multiplier or 1.25)
+		return
+	end
+
+	if message_id == hash("boost_damage") then
+		self.damage = self.damage + (message.damage_add or 2)
+		return
+	end
+
+	if message_id == hash("set_weapon_level") then
+		setup_level(self, message.level or 1)
+	end
+end

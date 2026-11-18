@@ -1,0 +1,265 @@
+local game_state = require("main.modules.game_state")
+local pathfinding = require("main.modules.pathfinding")
+local sound_manager = require("main.modules.sound_manager")
+
+local ENEMY_HP_BY_LEVEL = { 14, 22, 32, 46, 64, 86, 112, 145, 190 }
+local ENEMY_SPEED_BY_LEVEL = { 55, 62, 70, 78, 86, 95, 105, 116, 128 }
+local ENEMY_DAMAGE_BY_LEVEL = { 6, 8, 10, 13, 16, 20, 25, 30, 36 }
+
+local BASE_SPAWN_INTERVAL = 1.8
+local MIN_SPAWN_INTERVAL = 1.0
+local SPAWN_ACCELERATION = 0.001
+local CHEST_DROP_CHANCE = 0.035
+local MAX_ACTIVE_ENEMIES = 12
+
+local function is_finite_number(value)
+	return value == value and value > -10000 and value < 10000
+end
+
+local function is_finite_vector3(v)
+	return is_finite_number(v.x) and is_finite_number(v.y) and is_finite_number(v.z)
+end
+
+local function pick_enemy_level(elapsed_time)
+	local level = 1 + math.floor(elapsed_time / 20)
+	if level > 9 then
+		level = 9
+	end
+	return level
+end
+
+function init(self)
+	self.factory_components = {
+		msg.url("factory_1#factory"),
+		msg.url("factory_2#factory"),
+		msg.url("factory_3#factory"),
+		msg.url("factory_4#factory"),
+		msg.url("factory_5#factory"),
+	}
+	self.factory_roots = {
+		msg.url("factory_1"),
+		msg.url("factory_2"),
+		msg.url("factory_3"),
+		msg.url("factory_4"),
+		msg.url("factory_5"),
+	}
+	self.spawn_timer = 0.5
+	self.elapsed_time = 0
+	self.enemy_kills = 0
+	self.active_enemy_count = 0
+	self.is_refilling = false
+	self.spawned_wave_bosses = {}
+	math.randomseed(os.time())
+	pathfinding.init(msg.url("/arena#game_arena"))
+	sound_manager.play_music()
+	print("Game controller ready with 5 spawn factories")
+end
+
+local function pick_enemy_type(elapsed_time)
+	local r = math.random()
+	if r < 0.45 then
+		-- Spawns classic enemies enemy_1 through enemy_9 based on current level progression!
+		return hash("normal")
+	elseif r < 0.60 then
+		return hash("slime")
+	elseif r < 0.74 then
+		return hash("skeleton")
+	elseif r < 0.88 then
+		return hash("eye")
+	else
+		return hash("zombie")
+	end
+end
+
+local function get_max_enemies(elapsed_time)
+	-- Starts at 18, smoothly increases up to 38 active horde enemies!
+	return math.min(38, 18 + math.floor(elapsed_time / 12))
+end
+
+local function spawn_boss(self, boss_type, hp_val, speed_val, dmg_val)
+	local factory_index = math.random(1, #self.factory_components)
+	local spawn_pos = go.get_world_position(self.factory_roots[factory_index])
+	if not is_finite_vector3(spawn_pos) then
+		return
+	end
+	spawn_pos.z = 0.06
+
+	local props = {
+		enemy_type = boss_type,
+		enemy_level = 9,
+		max_hp = hp_val,
+		move_speed = speed_val,
+		contact_damage = dmg_val,
+	}
+
+	local boss_id = factory.create(self.factory_components[factory_index], spawn_pos, nil, props)
+	if boss_id then
+		self.active_enemy_count = self.active_enemy_count + 1
+		print(">>> MINI-BOSS SPAWNED: " .. tostring(boss_type) .. " (hp " .. hp_val .. ")")
+	end
+end
+
+local function spawn_enemy(self)
+	local max_enemies = get_max_enemies(self.elapsed_time)
+	if self.active_enemy_count >= max_enemies then
+		return
+	end
+
+	local factory_index = math.random(1, #self.factory_components)
+	local spawn_pos = go.get_world_position(self.factory_roots[factory_index])
+	if not is_finite_vector3(spawn_pos) then
+		return
+	end
+	spawn_pos.z = 0.05
+
+	local level = pick_enemy_level(self.elapsed_time)
+	local enemy_type = pick_enemy_type(self.elapsed_time)
+	local hp = ENEMY_HP_BY_LEVEL[level]
+	local speed = ENEMY_SPEED_BY_LEVEL[level]
+	local damage = ENEMY_DAMAGE_BY_LEVEL[level]
+
+	-- Continuous overtime scaling so enemies don't plateau after 3 minutes
+	if self.elapsed_time > 60 then
+		local overtime = self.elapsed_time - 60
+		local hp_scale = 1.0 + (overtime / 45.0) * 0.50
+		local dmg_scale = 1.0 + (overtime / 60.0) * 0.35
+		local spd_scale = 1.0 + math.min(0.35, (overtime / 100.0) * 0.20)
+		hp = math.floor(hp * hp_scale)
+		damage = math.floor(damage * dmg_scale)
+		speed = math.floor(speed * spd_scale)
+	end
+
+	if enemy_type == hash("slime") then
+		hp = math.floor(hp * 0.85)
+		speed = speed + 12
+	elseif enemy_type == hash("skeleton") then
+		hp = math.floor(hp * 1.15)
+	elseif enemy_type == hash("eye") then
+		speed = speed + 14
+		hp = math.floor(hp * 0.9)
+	elseif enemy_type == hash("zombie") then
+		hp = math.floor(hp * 1.5)
+		speed = math.max(45, speed - 10)
+		damage = damage + 3
+	end
+
+	local props = {
+		enemy_type = enemy_type,
+		enemy_level = level,
+		max_hp = hp,
+		move_speed = speed,
+		contact_damage = damage,
+	}
+
+	local enemy_id = factory.create(self.factory_components[factory_index], spawn_pos, nil, props)
+	if enemy_id then
+		self.active_enemy_count = self.active_enemy_count + 1
+	end
+end
+
+-- Wave definitions with mid-wave mini-boss encounters
+local WAVES = {
+	{ id = "w1_boss", time = 35,  boss = hash("boss_hound"),       hp = 140, spd = 70, dmg = 15 },
+	{ id = "w2_boss", time = 110, boss = hash("boss_necromancer"), hp = 320, spd = 60, dmg = 20 },
+	{ id = "w3_boss", time = 185, boss = hash("boss_death_knight"), hp = 560, spd = 55, dmg = 26 },
+	{ id = "w4_boss", time = 260, boss = hash("boss_hound"),        hp = 480, spd = 72, dmg = 28, dual = hash("boss_necromancer") },
+}
+
+function update(self, dt)
+	if not game_state.is_running() then
+		return
+	end
+
+	self.elapsed_time = self.elapsed_time + dt
+	self.spawn_timer = self.spawn_timer - dt
+
+	-- Check structured mid-wave mini-bosses
+	for _, w in ipairs(WAVES) do
+		if self.elapsed_time >= w.time and not self.spawned_wave_bosses[w.id] then
+			self.spawned_wave_bosses[w.id] = true
+			spawn_boss(self, w.boss, w.hp, w.spd, w.dmg)
+			if w.dual then
+				spawn_boss(self, w.dual, math.floor(w.hp * 0.8), w.spd, w.dmg)
+			end
+		end
+	end
+
+	-- Recurring Mini-Boss encounters in endless late game (after 5 minutes)
+	self.recurring_boss_timer = (self.recurring_boss_timer or 60) - dt
+	if self.elapsed_time > 310 and self.recurring_boss_timer <= 0 then
+		self.recurring_boss_timer = 55.0
+		local bosses = { hash("boss_hound"), hash("boss_necromancer"), hash("boss_death_knight") }
+		local btype = bosses[math.random(1, #bosses)]
+		local overtime = self.elapsed_time - 310
+		local boss_hp = math.floor(380 + overtime * 1.8)
+		local boss_dmg = math.floor(22 + overtime * 0.06)
+		spawn_boss(self, btype, boss_hp, 42, boss_dmg)
+	end
+
+	-- Refill rush mode: if enemies drop below 3, rush spawn until there are at least 10!
+	if self.active_enemy_count < 3 then
+		self.is_refilling = true
+	elseif self.active_enemy_count >= 10 then
+		self.is_refilling = false
+	end
+
+	local spawn_interval
+	if self.is_refilling then
+		spawn_interval = 0.20 -- rapid-fire reinforcement from all 5 spawn points!
+	elseif self.active_enemy_count < 10 then
+		spawn_interval = 0.40
+	else
+		spawn_interval = math.max(0.48, BASE_SPAWN_INTERVAL - (self.elapsed_time * 0.0035))
+	end
+
+	if self.spawn_timer <= 0 then
+		spawn_enemy(self)
+		self.spawn_timer = spawn_interval
+	end
+end
+
+function on_message(self, message_id, message)
+	if message_id == hash("spawn_damage_text") then
+		local pos = message.position
+		if pos and is_finite_vector3(pos) then
+			pos.z = 0.5
+			factory.create("#damage_factory", pos, nil, {
+				damage = message.damage or 1,
+				is_crit = message.is_crit or false,
+				is_level_up = message.is_level_up or false,
+			})
+		end
+		return
+	end
+
+	if message_id == hash("enemy_killed") then
+		self.active_enemy_count = math.max(0, self.active_enemy_count - 1)
+		self.enemy_kills = self.enemy_kills + 1
+		msg.post("/gui#gui", "update_kills", { kills = self.enemy_kills })
+
+		-- Spawn XP gem with balanced progression
+		local pos = message.position
+		if pos and is_finite_vector3(pos) then
+			local gem_pos = vmath.vector3(pos.x, pos.y, 0.07)
+			if message.is_boss then
+				local boss_gem_xp = math.floor(45 + math.min(35, self.elapsed_time * 0.10))
+				for _ = 1, 2 do
+					factory.create("#xp_factory", gem_pos, nil, { xp_value = boss_gem_xp })
+				end
+			else
+				local elvl = message.level or 1
+				local base_xp = 4 + (elvl - 1) * 2
+				local overtime_mult = 1.0 + math.min(0.5, (math.max(0, self.elapsed_time - 90) / 180.0) * 0.35)
+				local total_xp = math.floor(base_xp * overtime_mult)
+				factory.create("#xp_factory", gem_pos, nil, { xp_value = total_xp })
+			end
+		end
+
+		local should_drop = message.is_boss or (math.random() <= CHEST_DROP_CHANCE)
+		if should_drop and pos then
+			local chest_pos = vmath.vector3(pos.x, pos.y, 0.08)
+			factory.create("#chest_factory", chest_pos)
+			print("Chest dropped" .. (message.is_boss and " (BOSS REWARD)" or ""))
+		end
+	end
+end

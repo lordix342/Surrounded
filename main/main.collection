@@ -1,0 +1,143 @@
+name: "main"
+instances {
+  id: "hero_ob"
+  prototype: "/main/hero/hero_ob.go"
+  position {
+    z: 0.1
+  }
+}
+instances {
+  id: "sound_manager"
+  prototype: "/main/audio/sound_manager.go"
+}
+scale_along_z: 0
+embedded_instances {
+  id: "gui"
+  data: "components {\n"
+  "  id: \"gui\"\n"
+  "  component: \"/main/gui/game.gui\"\n"
+  "}\n"
+  ""
+}
+embedded_instances {
+  id: "arena"
+  data: "components {\n"
+  "  id: \"game_arena\"\n"
+  "  component: \"/assets/map/new_arena.tilemap\"\n"
+  "}\n"
+  "embedded_components {\n"
+  "  id: \"collisionobject\"\n"
+  "  type: \"collisionobject\"\n"
+  "  data: \"collision_shape: \\\"/assets/map/new_arena.tilemap\\\"\\n"
+  "type: COLLISION_OBJECT_TYPE_STATIC\\n"
+  "mass: 0.0\\n"
+  "friction: 0.1\\n"
+  "restitution: 0.0\\n"
+  "group: \\\"walls\\\"\\n"
+  "mask: \\\"default\\\"\\n"
+  "mask: \\\"enemy\\\"\\n"
+  "\"\n"
+  "}\n"
+  ""
+}
+embedded_instances {
+  id: "controller"
+  children: "factory_1"
+  children: "factory_2"
+  children: "factory_3"
+  children: "factory_4"
+  children: "factory_5"
+  data: "components {\n"
+  "  id: \"controller\"\n"
+  "  component: \"/main/game_controller.script\"\n"
+  "}\n"
+  "embedded_components {\n"
+  "  id: \"chest_factory\"\n"
+  "  type: \"factory\"\n"
+  "  data: \"prototype: \\\"/main/weapons/chest.go\\\"\\n"
+  "\"\n"
+  "}\n"
+  "embedded_components {\n"
+  "  id: \"damage_factory\"\n"
+  "  type: \"factory\"\n"
+  "  data: \"prototype: \\\"/main/fx/damage_text.go\\\"\\n"
+  "\"\n"
+  "}\n"
+  "embedded_components {\n"
+  "  id: \"xp_factory\"\n"
+  "  type: \"factory\"\n"
+  "  data: \"prototype: \\\"/main/fx/xp_gem.go\\\"\\n"
+  "\"\n"
+  "}\n"
+  ""
+}
+embedded_instances {
+  id: "factory_1"
+  data: "embedded_components {\n"
+  "  id: \"factory\"\n"
+  "  type: \"factory\"\n"
+  "  data: \"prototype: \\\"/main/enemies/enemy.go\\\"\\n"
+  "\"\n"
+  "}\n"
+  ""
+  position {
+    x: 24.0
+    y: 112.0
+  }
+}
+embedded_instances {
+  id: "factory_2"
+  data: "embedded_components {\n"
+  "  id: \"factory\"\n"
+  "  type: \"factory\"\n"
+  "  data: \"prototype: \\\"/main/enemies/enemy.go\\\"\\n"
+  "\"\n"
+  "}\n"
+  ""
+  position {
+    x: -216.0
+    y: -324.0
+  }
+}
+embedded_instances {
+  id: "factory_3"
+  data: "embedded_components {\n"
+  "  id: \"factory\"\n"
+  "  type: \"factory\"\n"
+  "  data: \"prototype: \\\"/main/enemies/enemy.go\\\"\\n"
+  "\"\n"
+  "}\n"
+  ""
+  position {
+    x: 232.0
+    y: -114.0
+  }
+}
+embedded_instances {
+  id: "factory_4"
+  data: "embedded_components {\n"
+  "  id: \"factory\"\n"
+  "  type: \"factory\"\n"
+  "  data: \"prototype: \\\"/main/enemies/enemy.go\\\"\\n"
+  "\"\n"
+  "}\n"
+  ""
+  position {
+    x: 653.0
+    y: -20.0
+  }
+}
+embedded_instances {
+  id: "factory_5"
+  data: "embedded_components {\n"
+  "  id: \"factory\"\n"
+  "  type: \"factory\"\n"
+  "  data: \"prototype: \\\"/main/enemies/enemy.go\\\"\\n"
+  "\"\n"
+  "}\n"
+  ""
+  position {
+    x: 164.0
+    y: -375.0
+  }
+}

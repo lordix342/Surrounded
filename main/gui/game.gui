@@ -1,0 +1,1895 @@
+script: "/main/gui/game.gui_script"
+fonts {
+  name: "default"
+  font: "/builtins/fonts/default.font"
+}
+fonts {
+  name: "game_font"
+  font: "/assets/fonts/game_font.font"
+}
+fonts {
+  name: "game_font_large"
+  font: "/assets/fonts/game_font_large.font"
+}
+fonts {
+  name: "game_font_small"
+  font: "/assets/fonts/game_font_small.font"
+}
+textures {
+  name: "game"
+  texture: "/main/game.atlas"
+}
+nodes {
+  position {
+    x: 140.0
+    y: 608.0
+  }
+  size {
+    x: 220.0
+    y: 22.0
+  }
+  color {
+    x: 0.15
+    y: 0.15
+    z: 0.18
+  }
+  type: TYPE_BOX
+  id: "hp_bg"
+  alpha: 0.92
+}
+nodes {
+  position {
+    x: -110.0
+  }
+  size {
+    x: 220.0
+    y: 22.0
+  }
+  color {
+    x: 0.85
+    y: 0.2
+    z: 0.25
+  }
+  type: TYPE_BOX
+  id: "hp_fill"
+  pivot: PIVOT_W
+  parent: "hp_bg"
+  inherit_alpha: true
+}
+nodes {
+  size {
+    x: 200.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "HP 100/100"
+  font: "game_font_small"
+  id: "hp_label"
+  parent: "hp_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 140.0
+    y: 584.0
+  }
+  size {
+    x: 220.0
+    y: 16.0
+  }
+  color {
+    x: 0.1
+    y: 0.12
+    z: 0.18
+  }
+  type: TYPE_BOX
+  id: "xp_bg"
+  alpha: 0.92
+}
+nodes {
+  position {
+    x: -110.0
+  }
+  size {
+    x: 0.0
+    y: 16.0
+  }
+  color {
+    x: 0.2
+    y: 0.72
+    z: 1.0
+  }
+  type: TYPE_BOX
+  id: "xp_fill"
+  pivot: PIVOT_W
+  parent: "xp_bg"
+  inherit_alpha: true
+}
+nodes {
+  size {
+    x: 200.0
+    y: 16.0
+  }
+  color {
+    x: 0.9
+    y: 0.95
+    z: 1.0
+  }
+  type: TYPE_TEXT
+  text: "LVL 1 - 0/30 XP"
+  font: "game_font_small"
+  id: "xp_label"
+  parent: "xp_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 370.0
+    y: 600.0
+  }
+  size {
+    x: 120.0
+    y: 34.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_frame_timer"
+  id: "timer_bg"
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+  alpha: 1.0
+}
+nodes {
+  size {
+    x: 110.0
+    y: 30.0
+  }
+  color {
+    x: 0.25
+    y: 0.95
+    z: 1.0
+  }
+  type: TYPE_TEXT
+  text: "00:00"
+  font: "game_font"
+  id: "timer_label"
+  parent: "timer_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 500.0
+    y: 600.0
+  }
+  size {
+    x: 110.0
+    y: 34.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_frame_kills"
+  id: "kills_bg"
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+  alpha: 1.0
+}
+nodes {
+  size {
+    x: 100.0
+    y: 30.0
+  }
+  color {
+    x: 1.0
+    y: 0.38
+    z: 0.38
+  }
+  type: TYPE_TEXT
+  text: "KILLS: 0"
+  font: "game_font"
+  id: "kills_label"
+  parent: "kills_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 645.0
+    y: 600.0
+  }
+  size {
+    x: 130.0
+    y: 34.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_btn_gold"
+  id: "skills_hud_btn"
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+  alpha: 1.0
+}
+nodes {
+  size {
+    x: 130.0
+    y: 34.0
+  }
+  color {
+    x: 1.0
+    y: 0.85
+    z: 0.3
+  }
+  type: TYPE_TEXT
+  text: "SKILLS [0]"
+  font: "game_font"
+  id: "skills_hud_label"
+  parent: "skills_hud_btn"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 795.0
+    y: 600.0
+  }
+  size {
+    x: 110.0
+    y: 34.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_btn_dark"
+  id: "pause_btn"
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+  alpha: 1.0
+}
+nodes {
+  size {
+    x: 110.0
+    y: 34.0
+  }
+  type: TYPE_TEXT
+  text: "PAUSE"
+  font: "game_font"
+  id: "pause_btn_label"
+  parent: "pause_btn"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 480.0
+    y: 320.0
+  }
+  size {
+    x: 960.0
+    y: 640.0
+  }
+  color {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  }
+  type: TYPE_BOX
+  id: "pause_root"
+  alpha: 0.65
+}
+nodes {
+  size {
+    x: 360.0
+    y: 220.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_frame_panel"
+  id: "pause_panel"
+  parent: "pause_root"
+  inherit_alpha: true
+  slice9 {
+    x: 12.0
+    y: 12.0
+    z: 12.0
+    w: 12.0
+  }
+  alpha: 0.98
+}
+nodes {
+  position {
+    y: 60.0
+  }
+  size {
+    x: 300.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "PAUSED"
+  font: "game_font_large"
+  id: "pause_title"
+  parent: "pause_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -30.0
+  }
+  size {
+    x: 200.0
+    y: 48.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_btn_green"
+  id: "resume_btn"
+  parent: "pause_panel"
+  inherit_alpha: true
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+}
+nodes {
+  size {
+    x: 200.0
+    y: 48.0
+  }
+  type: TYPE_TEXT
+  text: "RESUME"
+  font: "game_font"
+  id: "resume_btn_label"
+  parent: "resume_btn"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 480.0
+    y: 320.0
+  }
+  size {
+    x: 960.0
+    y: 640.0
+  }
+  color {
+    x: 0.05
+    y: 0.0
+    z: 0.0
+  }
+  type: TYPE_BOX
+  id: "death_root"
+  alpha: 0.75
+}
+nodes {
+  size {
+    x: 380.0
+    y: 240.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_frame_panel"
+  id: "death_panel"
+  parent: "death_root"
+  inherit_alpha: true
+  slice9 {
+    x: 12.0
+    y: 12.0
+    z: 12.0
+    w: 12.0
+  }
+  alpha: 0.98
+}
+nodes {
+  position {
+    y: 60.0
+  }
+  size {
+    x: 320.0
+    y: 40.0
+  }
+  color {
+    x: 1.0
+    y: 0.3
+    z: 0.3
+  }
+  type: TYPE_TEXT
+  text: "YOU DIED"
+  font: "game_font_large"
+  id: "death_title"
+  parent: "death_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -30.0
+  }
+  size {
+    x: 220.0
+    y: 48.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_btn_red"
+  id: "retry_btn"
+  parent: "death_panel"
+  inherit_alpha: true
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+}
+nodes {
+  size {
+    x: 220.0
+    y: 48.0
+  }
+  type: TYPE_TEXT
+  text: "TRY AGAIN"
+  font: "game_font"
+  id: "retry_btn_label"
+  parent: "retry_btn"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 480.0
+    y: 320.0
+  }
+  size {
+    x: 960.0
+    y: 640.0
+  }
+  color {
+    x: 0.02
+    y: 0.02
+    z: 0.04
+  }
+  type: TYPE_BOX
+  id: "upgrade_root"
+  alpha: 0.8
+}
+nodes {
+  position {
+    y: 230.0
+  }
+  size {
+    x: 600.0
+    y: 50.0
+  }
+  color {
+    x: 1.0
+    y: 0.85
+    z: 0.25
+  }
+  type: TYPE_TEXT
+  text: "CHOOSE AN UPGRADE"
+  font: "game_font_large"
+  id: "upgrade_title"
+  parent: "upgrade_root"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: 190.0
+  }
+  size {
+    x: 500.0
+    y: 25.0
+  }
+  color {
+    x: 0.85
+    y: 0.85
+    z: 0.9
+  }
+  type: TYPE_TEXT
+  text: "Select 1 of 3 rewards for your hero"
+  font: "game_font_small"
+  id: "upgrade_subtitle"
+  parent: "upgrade_root"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: -245.0
+    y: -20.0
+  }
+  size {
+    x: 226.0
+    y: 300.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_frame_card"
+  id: "card_1_bg"
+  parent: "upgrade_root"
+  inherit_alpha: true
+  slice9 {
+    x: 12.0
+    y: 12.0
+    z: 12.0
+    w: 12.0
+  }
+  alpha: 0.98
+}
+nodes {
+  position {
+    y: 80.0
+  }
+  size {
+    x: 68.0
+    y: 68.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_frame_badge"
+  id: "card_1_icon_bg"
+  parent: "card_1_bg"
+  inherit_alpha: true
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+}
+nodes {
+  size {
+    x: 52.0
+    y: 52.0
+  }
+  type: TYPE_BOX
+  texture: "game/card_sword"
+  id: "card_1_icon"
+  parent: "card_1_icon_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: 20.0
+  }
+  size {
+    x: 210.0
+    y: 30.0
+  }
+  color {
+    x: 1.0
+    y: 0.9
+    z: 0.4
+  }
+  type: TYPE_TEXT
+  text: "Upgrade 1"
+  font: "game_font"
+  id: "card_1_title"
+  parent: "card_1_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -35.0
+  }
+  size {
+    x: 206.0
+    y: 72.0
+  }
+  color {
+    x: 0.8
+    y: 0.85
+    z: 0.95
+  }
+  type: TYPE_TEXT
+  text: "Description 1"
+  font: "game_font_small"
+  id: "card_1_desc"
+  parent: "card_1_bg"
+  inherit_alpha: true
+  line_break: true
+}
+nodes {
+  position {
+    y: -105.0
+  }
+  size {
+    x: 180.0
+    y: 40.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_btn_green"
+  id: "card_1_btn"
+  parent: "card_1_bg"
+  inherit_alpha: true
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+}
+nodes {
+  size {
+    x: 180.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "SELECT"
+  font: "game_font"
+  id: "card_1_btn_label"
+  parent: "card_1_btn"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 0.0
+    y: -20.0
+  }
+  size {
+    x: 226.0
+    y: 300.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_frame_card"
+  id: "card_2_bg"
+  parent: "upgrade_root"
+  inherit_alpha: true
+  slice9 {
+    x: 12.0
+    y: 12.0
+    z: 12.0
+    w: 12.0
+  }
+  alpha: 0.98
+}
+nodes {
+  position {
+    y: 80.0
+  }
+  size {
+    x: 68.0
+    y: 68.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_frame_badge"
+  id: "card_2_icon_bg"
+  parent: "card_2_bg"
+  inherit_alpha: true
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+}
+nodes {
+  size {
+    x: 52.0
+    y: 52.0
+  }
+  type: TYPE_BOX
+  texture: "game/card_boots"
+  id: "card_2_icon"
+  parent: "card_2_icon_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: 20.0
+  }
+  size {
+    x: 210.0
+    y: 30.0
+  }
+  color {
+    x: 1.0
+    y: 0.9
+    z: 0.4
+  }
+  type: TYPE_TEXT
+  text: "Upgrade 2"
+  font: "game_font"
+  id: "card_2_title"
+  parent: "card_2_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -35.0
+  }
+  size {
+    x: 206.0
+    y: 72.0
+  }
+  color {
+    x: 0.8
+    y: 0.85
+    z: 0.95
+  }
+  type: TYPE_TEXT
+  text: "Description 2"
+  font: "game_font_small"
+  id: "card_2_desc"
+  parent: "card_2_bg"
+  inherit_alpha: true
+  line_break: true
+}
+nodes {
+  position {
+    y: -105.0
+  }
+  size {
+    x: 180.0
+    y: 40.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_btn_green"
+  id: "card_2_btn"
+  parent: "card_2_bg"
+  inherit_alpha: true
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+}
+nodes {
+  size {
+    x: 180.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "SELECT"
+  font: "game_font"
+  id: "card_2_btn_label"
+  parent: "card_2_btn"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 245.0
+    y: -20.0
+  }
+  size {
+    x: 226.0
+    y: 300.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_frame_card"
+  id: "card_3_bg"
+  parent: "upgrade_root"
+  inherit_alpha: true
+  slice9 {
+    x: 12.0
+    y: 12.0
+    z: 12.0
+    w: 12.0
+  }
+  alpha: 0.98
+}
+nodes {
+  position {
+    y: 80.0
+  }
+  size {
+    x: 68.0
+    y: 68.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_frame_badge"
+  id: "card_3_icon_bg"
+  parent: "card_3_bg"
+  inherit_alpha: true
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+}
+nodes {
+  size {
+    x: 52.0
+    y: 52.0
+  }
+  type: TYPE_BOX
+  texture: "game/card_heart"
+  id: "card_3_icon"
+  parent: "card_3_icon_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: 20.0
+  }
+  size {
+    x: 210.0
+    y: 30.0
+  }
+  color {
+    x: 1.0
+    y: 0.9
+    z: 0.4
+  }
+  type: TYPE_TEXT
+  text: "Upgrade 3"
+  font: "game_font"
+  id: "card_3_title"
+  parent: "card_3_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -35.0
+  }
+  size {
+    x: 206.0
+    y: 72.0
+  }
+  color {
+    x: 0.8
+    y: 0.85
+    z: 0.95
+  }
+  type: TYPE_TEXT
+  text: "Description 3"
+  font: "game_font_small"
+  id: "card_3_desc"
+  parent: "card_3_bg"
+  inherit_alpha: true
+  line_break: true
+}
+nodes {
+  position {
+    y: -105.0
+  }
+  size {
+    x: 180.0
+    y: 40.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_btn_green"
+  id: "card_3_btn"
+  parent: "card_3_bg"
+  inherit_alpha: true
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+}
+nodes {
+  size {
+    x: 180.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "SELECT"
+  font: "game_font"
+  id: "card_3_btn_label"
+  parent: "card_3_btn"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 480.0
+    y: 320.0
+  }
+  size {
+    x: 960.0
+    y: 640.0
+  }
+  color {
+    x: 0.02
+    y: 0.02
+    z: 0.04
+  }
+  type: TYPE_BOX
+  id: "skill_tree_root"
+  alpha: 0.88
+}
+nodes {
+  size {
+    x: 920.0
+    y: 580.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_frame_panel"
+  id: "tree_panel"
+  parent: "skill_tree_root"
+  inherit_alpha: true
+  slice9 {
+    x: 12.0
+    y: 12.0
+    z: 12.0
+    w: 12.0
+  }
+  alpha: 0.98
+}
+nodes {
+  position {
+    y: 252.0
+  }
+  size {
+    x: 350.0
+    y: 44.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_frame_header"
+  id: "tree_header_bg"
+  parent: "tree_panel"
+  inherit_alpha: true
+  slice9 {
+    x: 14.0
+    y: 12.0
+    z: 14.0
+    w: 12.0
+  }
+}
+nodes {
+  position {
+    y: 252.0
+  }
+  size {
+    x: 500.0
+    y: 36.0
+  }
+  color {
+    x: 1.0
+    y: 0.85
+    z: 0.25
+  }
+  type: TYPE_TEXT
+  text: "HERO SKILL TREE"
+  font: "game_font_large"
+  id: "tree_header"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: 222.0
+  }
+  size {
+    x: 500.0
+    y: 20.0
+  }
+  color {
+    x: 0.8
+    y: 0.85
+    z: 0.9
+  }
+  type: TYPE_TEXT
+  text: "Earn Skill Points on Level Up and master your abilities"
+  font: "game_font_small"
+  id: "tree_subtitle"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 310.0
+    y: 246.0
+  }
+  size {
+    x: 210.0
+    y: 36.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_frame_badge"
+  id: "tree_sp_badge"
+  parent: "tree_panel"
+  inherit_alpha: true
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+}
+nodes {
+  size {
+    x: 210.0
+    y: 34.0
+  }
+  color {
+    x: 1.0
+    y: 0.88
+    z: 0.3
+  }
+  type: TYPE_TEXT
+  text: "SKILL POINTS: 0"
+  font: "game_font"
+  id: "tree_sp_label"
+  parent: "tree_sp_badge"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: -380.0
+    y: 115.0
+  }
+  size {
+    x: 100.0
+    y: 30.0
+  }
+  color {
+    x: 1.0
+    y: 0.6
+    z: 0.25
+  }
+  type: TYPE_TEXT
+  text: "AURAS"
+  font: "game_font"
+  id: "b1_label"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: -200.0
+    y: 115.0
+  }
+  size {
+    x: 72.0
+    y: 72.0
+  }
+  color {
+    x: 0.18
+    y: 0.2
+    z: 0.28
+  }
+  type: TYPE_BOX
+  id: "node_fire_1"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  size {
+    x: 42.0
+    y: 42.0
+  }
+  type: TYPE_BOX
+  texture: "game/skill_fire_aura"
+  id: "node_fire_1_icon"
+  parent: "node_fire_1"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -46.0
+  }
+  size {
+    x: 120.0
+    y: 18.0
+  }
+  type: TYPE_TEXT
+  text: "Fire Aura"
+  font: "game_font_small"
+  id: "node_fire_1_name"
+  parent: "node_fire_1"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: -85.0
+    y: 115.0
+  }
+  size {
+    x: 60.0
+    y: 26.0
+  }
+  color {
+    x: 1.0
+    y: 0.82
+    z: 0.2
+  }
+  type: TYPE_TEXT
+  text: "OR"
+  font: "game_font"
+  id: "arrow_fire_1"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 30.0
+    y: 115.0
+  }
+  size {
+    x: 72.0
+    y: 72.0
+  }
+  color {
+    x: 0.18
+    y: 0.2
+    z: 0.28
+  }
+  type: TYPE_BOX
+  id: "node_frost"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  size {
+    x: 42.0
+    y: 42.0
+  }
+  type: TYPE_BOX
+  texture: "game/skill_frost_aura"
+  id: "node_frost_icon"
+  parent: "node_frost"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -46.0
+  }
+  size {
+    x: 120.0
+    y: 18.0
+  }
+  type: TYPE_TEXT
+  text: "Frost Aura"
+  font: "game_font_small"
+  id: "node_frost_name"
+  parent: "node_frost"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 145.0
+    y: 115.0
+  }
+  size {
+    x: 36.0
+    y: 26.0
+  }
+  type: TYPE_BOX
+  texture: "game/skill_arrow"
+  id: "arrow_fire_2"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 260.0
+    y: 115.0
+  }
+  size {
+    x: 72.0
+    y: 72.0
+  }
+  color {
+    x: 0.18
+    y: 0.2
+    z: 0.28
+  }
+  type: TYPE_BOX
+  id: "node_fire_2"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  size {
+    x: 42.0
+    y: 42.0
+  }
+  type: TYPE_BOX
+  texture: "game/aura_circle"
+  id: "node_fire_2_icon"
+  parent: "node_fire_2"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -46.0
+  }
+  size {
+    x: 120.0
+    y: 18.0
+  }
+  type: TYPE_TEXT
+  text: "Aura Radiance"
+  font: "game_font_small"
+  id: "node_fire_2_name"
+  parent: "node_fire_2"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: -380.0
+    y: -10.0
+  }
+  size {
+    x: 100.0
+    y: 30.0
+  }
+  color {
+    x: 0.4
+    y: 0.8
+    z: 1.0
+  }
+  type: TYPE_TEXT
+  text: "LIGHTNING"
+  font: "game_font"
+  id: "b2_label"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: -200.0
+    y: -10.0
+  }
+  size {
+    x: 72.0
+    y: 72.0
+  }
+  color {
+    x: 0.18
+    y: 0.2
+    z: 0.28
+  }
+  type: TYPE_BOX
+  id: "node_light_1"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  size {
+    x: 42.0
+    y: 42.0
+  }
+  type: TYPE_BOX
+  texture: "game/skill_lightning"
+  id: "node_light_1_icon"
+  parent: "node_light_1"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -46.0
+  }
+  size {
+    x: 120.0
+    y: 18.0
+  }
+  type: TYPE_TEXT
+  text: "Lightning I"
+  font: "game_font_small"
+  id: "node_light_1_name"
+  parent: "node_light_1"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: -85.0
+    y: -10.0
+  }
+  size {
+    x: 36.0
+    y: 26.0
+  }
+  type: TYPE_BOX
+  texture: "game/skill_arrow"
+  id: "arrow_light_1"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 30.0
+    y: -10.0
+  }
+  size {
+    x: 72.0
+    y: 72.0
+  }
+  color {
+    x: 0.18
+    y: 0.2
+    z: 0.28
+  }
+  type: TYPE_BOX
+  id: "node_light_2"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  size {
+    x: 42.0
+    y: 42.0
+  }
+  type: TYPE_BOX
+  texture: "game/skill_lightning"
+  id: "node_light_2_icon"
+  parent: "node_light_2"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -46.0
+  }
+  size {
+    x: 120.0
+    y: 18.0
+  }
+  type: TYPE_TEXT
+  text: "Chain Bolt II"
+  font: "game_font_small"
+  id: "node_light_2_name"
+  parent: "node_light_2"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 145.0
+    y: -10.0
+  }
+  size {
+    x: 36.0
+    y: 26.0
+  }
+  type: TYPE_BOX
+  texture: "game/skill_arrow"
+  id: "arrow_light_2"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 260.0
+    y: -10.0
+  }
+  size {
+    x: 72.0
+    y: 72.0
+  }
+  color {
+    x: 0.18
+    y: 0.2
+    z: 0.28
+  }
+  type: TYPE_BOX
+  id: "node_thunder"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  size {
+    x: 42.0
+    y: 42.0
+  }
+  type: TYPE_BOX
+  texture: "game/skill_thunder"
+  id: "node_thunder_icon"
+  parent: "node_thunder"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -46.0
+  }
+  size {
+    x: 120.0
+    y: 18.0
+  }
+  type: TYPE_TEXT
+  text: "Thunderstorm II"
+  font: "game_font_small"
+  id: "node_thunder_name"
+  parent: "node_thunder"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: -380.0
+    y: -135.0
+  }
+  size {
+    x: 100.0
+    y: 30.0
+  }
+  color {
+    x: 0.4
+    y: 0.9
+    z: 0.5
+  }
+  type: TYPE_TEXT
+  text: "MASTERY"
+  font: "game_font"
+  id: "b3_label"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: -200.0
+    y: -135.0
+  }
+  size {
+    x: 72.0
+    y: 72.0
+  }
+  color {
+    x: 0.18
+    y: 0.2
+    z: 0.28
+  }
+  type: TYPE_BOX
+  id: "node_mag_1"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  size {
+    x: 42.0
+    y: 42.0
+  }
+  type: TYPE_BOX
+  texture: "game/skill_magnet"
+  id: "node_mag_1_icon"
+  parent: "node_mag_1"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -46.0
+  }
+  size {
+    x: 120.0
+    y: 18.0
+  }
+  type: TYPE_TEXT
+  text: "Magnetism I"
+  font: "game_font_small"
+  id: "node_mag_1_name"
+  parent: "node_mag_1"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: -85.0
+    y: -135.0
+  }
+  size {
+    x: 36.0
+    y: 26.0
+  }
+  type: TYPE_BOX
+  texture: "game/skill_arrow"
+  id: "arrow_mag_1"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 30.0
+    y: -135.0
+  }
+  size {
+    x: 72.0
+    y: 72.0
+  }
+  color {
+    x: 0.18
+    y: 0.2
+    z: 0.28
+  }
+  type: TYPE_BOX
+  id: "node_vitality"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  size {
+    x: 42.0
+    y: 42.0
+  }
+  type: TYPE_BOX
+  texture: "game/skill_regen"
+  id: "node_vitality_icon"
+  parent: "node_vitality"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -46.0
+  }
+  size {
+    x: 120.0
+    y: 18.0
+  }
+  type: TYPE_TEXT
+  text: "Titan Blood II"
+  font: "game_font_small"
+  id: "node_vitality_name"
+  parent: "node_vitality"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 145.0
+    y: -135.0
+  }
+  size {
+    x: 36.0
+    y: 26.0
+  }
+  type: TYPE_BOX
+  texture: "game/skill_arrow"
+  id: "arrow_mag_2"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 260.0
+    y: -135.0
+  }
+  size {
+    x: 72.0
+    y: 72.0
+  }
+  color {
+    x: 0.18
+    y: 0.2
+    z: 0.28
+  }
+  type: TYPE_BOX
+  id: "node_haste"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  size {
+    x: 42.0
+    y: 42.0
+  }
+  type: TYPE_BOX
+  texture: "game/skill_haste"
+  id: "node_haste_icon"
+  parent: "node_haste"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -46.0
+  }
+  size {
+    x: 120.0
+    y: 18.0
+  }
+  type: TYPE_TEXT
+  text: "Swift Fury II"
+  font: "game_font_small"
+  id: "node_haste_name"
+  parent: "node_haste"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: -160.0
+    y: -235.0
+  }
+  size {
+    x: 440.0
+    y: 36.0
+  }
+  color {
+    x: 0.9
+    y: 0.95
+    z: 1.0
+  }
+  type: TYPE_TEXT
+  text: "Selected: Fire Aura I [Tier 1]"
+  font: "game_font_small"
+  id: "tree_selected_label"
+  parent: "tree_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 105.0
+    y: -235.0
+  }
+  size {
+    x: 130.0
+    y: 44.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_btn_dark"
+  id: "tree_close_btn"
+  parent: "tree_panel"
+  inherit_alpha: true
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+}
+nodes {
+  size {
+    x: 130.0
+    y: 44.0
+  }
+  type: TYPE_TEXT
+  text: "RESUME"
+  font: "game_font"
+  id: "tree_close_label"
+  parent: "tree_close_btn"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 305.0
+    y: -235.0
+  }
+  size {
+    x: 240.0
+    y: 44.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_btn_green"
+  id: "tree_learn_btn"
+  parent: "tree_panel"
+  inherit_alpha: true
+  slice9 {
+    x: 10.0
+    y: 10.0
+    z: 10.0
+    w: 10.0
+  }
+}
+nodes {
+  size {
+    x: 240.0
+    y: 44.0
+  }
+  type: TYPE_TEXT
+  text: "UPGRADE (1 SP)"
+  font: "game_font"
+  id: "tree_learn_label"
+  parent: "tree_learn_btn"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 0.0
+    y: 0.0
+  }
+  size {
+    x: 390.0
+    y: 165.0
+  }
+  color {
+    x: 0.28
+    y: 0.45
+    z: 0.65
+  }
+  type: TYPE_BOX
+  id: "tooltip_root"
+  parent: "tree_panel"
+  inherit_alpha: true
+  alpha: 0.98
+}
+nodes {
+  size {
+    x: 386.0
+    y: 161.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_BOX
+  texture: "game/ui_frame_panel"
+  id: "tooltip_bg"
+  parent: "tooltip_root"
+  inherit_alpha: true
+  slice9 {
+    x: 12.0
+    y: 12.0
+    z: 12.0
+    w: 12.0
+  }
+}
+nodes {
+  position {
+    y: 56.0
+  }
+  size {
+    x: 360.0
+    y: 22.0
+  }
+  color {
+    x: 1.0
+    y: 0.9
+    z: 0.3
+  }
+  type: TYPE_TEXT
+  text: "Skill Title"
+  font: "game_font"
+  id: "tooltip_title"
+  parent: "tooltip_root"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: 35.0
+  }
+  size {
+    x: 360.0
+    y: 18.0
+  }
+  color {
+    x: 0.35
+    y: 0.85
+    z: 1.0
+  }
+  type: TYPE_TEXT
+  text: "Tier 1 - Ability"
+  font: "game_font_small"
+  id: "tooltip_tier"
+  parent: "tooltip_root"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: -8.0
+  }
+  size {
+    x: 360.0
+    y: 64.0
+  }
+  color {
+    x: 0.92
+    y: 0.94
+    z: 0.98
+  }
+  type: TYPE_TEXT
+  text: "Detailed description of the skill"
+  font: "game_font_small"
+  id: "tooltip_desc"
+  parent: "tooltip_root"
+  inherit_alpha: true
+  line_break: true
+}
+nodes {
+  position {
+    y: -58.0
+  }
+  size {
+    x: 360.0
+    y: 20.0
+  }
+  color {
+    x: 0.4
+    y: 1.0
+    z: 0.6
+  }
+  type: TYPE_TEXT
+  text: "STATUS: READY TO UNLOCK"
+  font: "game_font_small"
+  id: "tooltip_status"
+  parent: "tooltip_root"
+  inherit_alpha: true
+  line_break: true
+}
+material: "/builtins/materials/gui.material"
+adjust_reference: ADJUST_REFERENCE_PARENT

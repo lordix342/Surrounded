@@ -1,0 +1,583 @@
+local game_state = require("main.modules.game_state")
+local sound_manager = require("main.modules.sound_manager")
+
+local MOVE_SPEED = 160
+local MAX_HERO_SPEED = 230
+local STOP_DISTANCE = 2
+local MAX_WEAPON_LEVEL = 5
+local MAX_WEAPON_COUNT = 6
+local START_WEAPON_COUNT = 2
+local MAX_HEALTH = 100
+
+local ARENA_MIN_X = -13 * 16 + 8
+local ARENA_MAX_X = 12 * 16 - 8
+local ARENA_MIN_Y = -18 * 16 + 8
+local ARENA_MAX_Y = 14 * 16 - 8
+
+local function is_finite_number(value)
+	return value == value and value > -10000 and value < 10000
+end
+
+local function is_finite_vector3(v)
+	return v and is_finite_number(v.x) and is_finite_number(v.y) and is_finite_number(v.z)
+end
+
+local function screen_to_world(action, z)
+	local sx = action.x or action.screen_x
+	local sy = action.y or action.screen_y
+	if not sx or not sy then
+		return go.get_position()
+	end
+
+	local cam_url = msg.url("#camera")
+
+	-- 1. Defold built-in camera view-projection matrix inversion (exact across any window size & DPI)
+	if camera and camera.get_projection and camera.get_view then
+		local ok_p, proj = pcall(camera.get_projection, cam_url)
+		local ok_v, view = pcall(camera.get_view, cam_url)
+		if ok_p and ok_v and proj and view then
+			local win_w, win_h = window.get_size()
+			if win_w > 0 and win_h > 0 then
+				local inv_vp = vmath.inv(proj * view)
+				local ndc_x = (2.0 * sx / win_w) - 1.0
+				local ndc_y = (2.0 * sy / win_h) - 1.0
+				local p = inv_vp * vmath.vector4(ndc_x, ndc_y, 0, 1.0)
+				if p.w ~= 0 then
+					local world_pos = vmath.vector3(p.x / p.w, p.y / p.w, z)
+					if is_finite_vector3(world_pos) then
+						return world_pos
+					end
+				end
+			end
+		end
+	end
+
+	-- 2. Try native camera.screen_to_world helper if available
+	if camera and camera.screen_to_world then
+		local ok, wpos = pcall(camera.screen_to_world, vmath.vector3(sx, sy, 0), cam_url)
+		if ok and wpos and is_finite_vector3(wpos) then
+			wpos.z = z
+			return wpos
+		end
+	end
+
+	-- 3. Geometric fallback centered on hero
+	local win_w, win_h = window.get_size()
+	local hero_pos = go.get_position()
+	local proj_w = sys.get_config_int("display.width", 960)
+	local proj_h = sys.get_config_int("display.height", 640)
+
+	local scale = math.max(proj_w / win_w, proj_h / win_h)
+	local dx = (sx - win_w * 0.5) * scale
+	local dy = (sy - win_h * 0.5) * scale
+
+	return vmath.vector3(hero_pos.x + dx, hero_pos.y + dy, z)
+end
+
+local function clamp(value, min_value, max_value)
+	if value < min_value then
+		return min_value
+	end
+	if value > max_value then
+		return max_value
+	end
+	return value
+end
+
+local function clamp_to_arena(pos)
+	pos.x = clamp(pos.x, ARENA_MIN_X, ARENA_MAX_X)
+	pos.y = clamp(pos.y, ARENA_MIN_Y, ARENA_MAX_Y)
+	return pos
+end
+
+local function notify_health(self)
+	local max_hp = self.max_health or MAX_HEALTH
+	game_state.set_health(self.health, max_hp)
+	msg.post("/gui#gui", "update_health", {
+		health = self.health,
+		max_health = max_hp,
+	})
+end
+
+local function sync_weapons(self)
+	local count = #self.weapon_ids
+	for index, weapon_id in ipairs(self.weapon_ids) do
+		msg.post(weapon_id, "configure_weapon", {
+			level = self.weapon_level,
+			slot_index = index,
+			slot_count = count,
+		})
+	end
+end
+
+local function spawn_weapon(self)
+	local spawn_pos = go.get_position()
+	spawn_pos.z = 0.15
+	local slot_index = #self.weapon_ids + 1
+	local weapon_id = factory.create("#weapon_factory", spawn_pos, nil, {
+		slot_index = slot_index,
+	})
+	if weapon_id then
+		table.insert(self.weapon_ids, weapon_id)
+		sync_weapons(self)
+	end
+end
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	msg.post("#camera", "acquire_camera_focus")
+	self.move_speed = MOVE_SPEED
+	self.pointer_down = false
+	self.has_target = false
+	self.target_pos = go.get_position()
+	self.max_health = MAX_HEALTH
+	self.health = self.max_health
+	self.weapon_level = 1
+	self.weapon_ids = {}
+	self.correction = vmath.vector3()
+	self.shake_time = 0
+	self.shake_duration = 0.22
+	self.shake_intensity = 0
+	self.shake_offset = nil
+	self.aura_angle = 0
+	self.aura_anim_time = 0
+	go.set("#aura_sprite", "tint.w", 0)
+	go.set("#fire_rim", "tint.w", 0)
+	go.set("#fire_wave_1", "tint.w", 0)
+	go.set("#fire_wave_2", "tint.w", 0)
+	go.set("#frost_wave_1", "tint.w", 0)
+	go.set("#frost_wave_2", "tint.w", 0)
+	go.set("#frost_wave_3", "tint.w", 0)
+
+	game_state.reset()
+	game_state.set_health(self.health, self.max_health)
+
+	for _ = 1, START_WEAPON_COUNT do
+		spawn_weapon(self)
+	end
+
+	notify_health(self)
+end
+
+function on_input(self, action_id, action)
+	if not game_state.is_running() then
+		self.pointer_down = false
+		self.has_target = false
+		return
+	end
+
+	if action_id == hash("touch") then
+		-- Ignore top HUD clicks (HP / Pause).
+		local _, screen_h = window.get_size()
+		local sy = action.screen_y or action.y
+		if sy and screen_h > 0 and sy > (screen_h - (screen_h * 0.15)) then
+			self.pointer_down = false
+			return
+		end
+
+		if action.pressed then
+			self.pointer_down = true
+		elseif action.released then
+			self.pointer_down = false
+		end
+
+		if self.pointer_down and (action.screen_x or action.x) and (action.screen_y or action.y) then
+			local pos = go.get_position()
+			self.target_pos = screen_to_world(action, pos.z)
+			self.has_target = true
+		end
+	end
+end
+
+function update(self, dt)
+	self.correction = vmath.vector3()
+	if not game_state.is_running() then
+		return
+	end
+
+	-- Remove previous frame's shake offset before processing movement
+	if self.shake_offset then
+		local pos = go.get_position() - self.shake_offset
+		if is_finite_vector3(pos) then
+			go.set_position(pos)
+		end
+		self.shake_offset = nil
+	end
+
+	if self.has_target then
+		local current = go.get_position()
+		if is_finite_vector3(current) and is_finite_vector3(self.target_pos) then
+			local to_target = self.target_pos - current
+			to_target.z = 0
+			local distance = vmath.length(to_target)
+
+			if distance <= STOP_DISTANCE then
+				self.has_target = false
+			else
+				local direction = to_target / distance
+				local raw_speed = (self.move_speed or MOVE_SPEED) * (game_state.swift_speed_mult or 1.0)
+				local hero_speed = math.min(MAX_HERO_SPEED, raw_speed)
+				local step = hero_speed * dt
+				if step > distance then
+					step = distance
+				end
+
+				local next_pos = current + direction * step
+				next_pos.z = current.z
+				if is_finite_vector3(next_pos) then
+					go.set_position(next_pos)
+				end
+			end
+		end
+	end
+
+	-- Vitality Health Regeneration
+	if (game_state.regen_rate or 0) > 0 and self.health < (self.max_health or MAX_HEALTH) then
+		self.health = math.min(self.max_health or MAX_HEALTH, self.health + game_state.regen_rate * dt)
+		self.regen_sync_timer = (self.regen_sync_timer or 0) - dt
+		if self.regen_sync_timer <= 0 then
+			self.regen_sync_timer = 0.5
+			notify_health(self)
+		end
+	end
+
+	-- Elemental Auras (Fire & Frost) - Dynamic Visuals & Combat
+	local fire_lvl = game_state.fire_aura_level or 0
+	local frost_lvl = game_state.frost_aura_level or 0
+	local radiance_lvl = game_state.aura_radiance_level or 0
+	self.aura_anim_time = (self.aura_anim_time or 0) + dt
+	local t = self.aura_anim_time
+	local TEX_R = 120.0
+
+	local rad_bonus = radiance_lvl * 8.0
+	local tick_boost = 1.0 - (radiance_lvl * 0.04)
+
+	-- 1. Fire Aura: Flames licking and burning inward towards the hero (Only if fire chosen)
+	if fire_lvl > 0 and frost_lvl == 0 then
+		local fire_r = (55 + fire_lvl * 8) + rad_bonus
+		local rim_pulse = 1.0 + 0.03 * math.sin(t * 8.0)
+		local rim_scale = (fire_r / TEX_R) * rim_pulse
+		local rim_alpha = 0.55 + 0.15 * math.sin(t * 6.0)
+		go.set("#fire_rim", "scale", vmath.vector3(rim_scale, rim_scale, 1))
+		go.set("#fire_rim", "tint", vmath.vector4(2.2, 0.75, 0.1, rim_alpha))
+
+		-- Inward contracting waves (fire pulls inward into hero)
+		local fire_waves = { "#fire_wave_1", "#fire_wave_2" }
+		for i, wave_id in ipairs(fire_waves) do
+			local offset = (i - 1) * 0.5
+			local p = (t * (1.15 + fire_lvl * 0.08) + offset) % 1.0
+			local cur_r = fire_r * (1.0 - 0.82 * p)
+			local wave_scale = cur_r / TEX_R
+			local wave_alpha
+			if p < 0.65 then
+				wave_alpha = 0.3 + 0.55 * (p / 0.65)
+			else
+				wave_alpha = 0.85 * (1.0 - (p - 0.65) / 0.35)
+			end
+			go.set(wave_id, "scale", vmath.vector3(wave_scale, wave_scale, 1))
+			go.set(wave_id, "tint", vmath.vector4(2.4, 0.85 - 0.3 * p, 0.05, wave_alpha))
+		end
+	else
+		go.set("#fire_rim", "tint.w", 0)
+		go.set("#fire_wave_1", "tint.w", 0)
+		go.set("#fire_wave_2", "tint.w", 0)
+	end
+
+	-- 2. Frost Aura: Blizzard surge emanating outwards from the hero in waves (Only if frost chosen)
+	if frost_lvl > 0 and fire_lvl == 0 then
+		local frost_r = (58 + frost_lvl * 8) + rad_bonus
+		local frost_waves = { "#frost_wave_1", "#frost_wave_2", "#frost_wave_3" }
+		for i, wave_id in ipairs(frost_waves) do
+			local offset = (i - 1) / 3.0
+			local p = (t * (0.85 + frost_lvl * 0.06) + offset) % 1.0
+			local cur_r = 16.0 + (frost_r - 16.0) * p
+			local wave_scale = cur_r / TEX_R
+			local wave_alpha = math.sin(p * math.pi) * math.min(0.85, 0.45 + frost_lvl * 0.08)
+			go.set(wave_id, "scale", vmath.vector3(wave_scale, wave_scale, 1))
+			go.set(wave_id, "tint", vmath.vector4(0.35, 1.15, 2.0, wave_alpha))
+		end
+	else
+		go.set("#frost_wave_1", "tint.w", 0)
+		go.set("#frost_wave_2", "tint.w", 0)
+		go.set("#frost_wave_3", "tint.w", 0)
+	end
+
+	-- Ambient soft ground glow
+	if (fire_lvl > 0 and frost_lvl == 0) or (frost_lvl > 0 and fire_lvl == 0) then
+		local active_r = (fire_lvl > 0) and ((55 + fire_lvl * 8) + rad_bonus) or ((58 + frost_lvl * 8) + rad_bonus)
+		local base_scale = active_r / 58.0
+		local glow_pulse = 0.25 + 0.08 * math.sin(t * 4.0)
+		go.set("#aura_sprite", "scale", vmath.vector3(base_scale * 0.88, base_scale * 0.88, 1))
+		if fire_lvl > 0 then
+			go.set("#aura_sprite", "tint", vmath.vector4(1.8, 0.5, 0.1, glow_pulse))
+		else
+			go.set("#aura_sprite", "tint", vmath.vector4(0.2, 0.9, 1.8, glow_pulse))
+		end
+	else
+		go.set("#aura_sprite", "tint.w", 0)
+	end
+
+	-- Balanced combat ticking
+	if fire_lvl > 0 or frost_lvl > 0 then
+		local active_r = (fire_lvl > 0) and ((55 + fire_lvl * 8) + rad_bonus) or ((58 + frost_lvl * 8) + rad_bonus)
+		local base_cooldown = (fire_lvl > 0) and (0.68 - fire_lvl * 0.05) or (0.72 - frost_lvl * 0.05)
+		local cooldown = math.max(0.35, base_cooldown * tick_boost)
+
+		self.aura_timer = (self.aura_timer or cooldown) - dt
+		if self.aura_timer <= 0 then
+			self.aura_timer = cooldown
+			local hpos = go.get_position()
+			local fire_dmg = (fire_lvl > 0) and (1 + fire_lvl + math.floor(radiance_lvl * 0.8)) or 0
+			local frost_dmg = (frost_lvl > 0) and (math.floor(frost_lvl * 0.8) + math.floor(radiance_lvl * 0.6)) or 0
+			local total_dmg = fire_dmg + frost_dmg
+
+			local slow_factor = math.max(0.35, 0.75 - frost_lvl * 0.08)
+			local slow_duration = 1.0 + frost_lvl * 0.2
+
+			game_state.for_each_enemy(function(enemy_id)
+				local ok, epos = pcall(go.get_position, enemy_id)
+				if ok and epos then
+					local d = epos - hpos
+					d.z = 0
+					if vmath.length(d) <= active_r then
+						if total_dmg > 0 then
+							msg.post(enemy_id, "weapon_hit", { damage = total_dmg, source_pos = hpos })
+						end
+						if frost_lvl > 0 then
+							msg.post(enemy_id, "apply_slow", { duration = slow_duration, factor = slow_factor })
+						end
+					end
+				end
+			end)
+		end
+	end
+
+	-- Celestial Lightning, Chain Bolt & Thunderstorm
+	local light_lvl = game_state.lightning_level or 0
+	local chain_lvl = game_state.chain_level or 0
+	local thunder_lvl = game_state.thunder_level or 0
+
+	if light_lvl > 0 then
+		self.lightning_timer = (self.lightning_timer or 2.8) - dt
+		local strike_cooldown = math.max(1.1, 2.8 - light_lvl * 0.32)
+		if self.lightning_timer <= 0 then
+			self.lightning_timer = strike_cooldown
+			local hpos = go.get_position()
+			local strike_dmg = 16 + light_lvl * 9
+			local chain_count = chain_lvl
+
+			local targets = {}
+			game_state.for_each_enemy(function(enemy_id)
+				local ok, epos = pcall(go.get_position, enemy_id)
+				if ok and epos then
+					local d = epos - hpos
+					d.z = 0
+					table.insert(targets, { id = enemy_id, dist = vmath.length(d), pos = epos })
+				end
+			end)
+			table.sort(targets, function(a, b) return a.dist < b.dist end)
+
+			if #targets > 0 and targets[1].dist <= 360 then
+				msg.post(targets[1].id, "weapon_hit", { damage = strike_dmg, source_pos = hpos })
+				sound_manager.play_slash()
+
+				if chain_count > 0 and #targets > 1 then
+					local chain_dmg = math.floor(strike_dmg * (0.5 + chain_lvl * 0.1))
+					for i = 2, math.min(#targets, 1 + chain_count) do
+						msg.post(targets[i].id, "weapon_hit", { damage = chain_dmg, source_pos = hpos })
+					end
+				end
+			end
+		end
+	end
+
+	if thunder_lvl > 0 then
+		self.thunder_timer = (self.thunder_timer or 3.6) - dt
+		local storm_cooldown = math.max(1.6, 3.6 - thunder_lvl * 0.4)
+		if self.thunder_timer <= 0 then
+			self.thunder_timer = storm_cooldown
+			local hpos = go.get_position()
+			local targets = {}
+			game_state.for_each_enemy(function(enemy_id)
+				local ok, epos = pcall(go.get_position, enemy_id)
+				if ok and epos then
+					table.insert(targets, enemy_id)
+				end
+			end)
+
+			local strikes = 1 + thunder_lvl
+			local thunder_dmg = 14 + thunder_lvl * 7
+			for _ = 1, math.min(strikes, #targets) do
+				if #targets > 0 then
+					local idx = math.random(1, #targets)
+					local tid = targets[idx]
+					msg.post(tid, "weapon_hit", { damage = thunder_dmg, source_pos = hpos })
+					table.remove(targets, idx)
+				end
+			end
+		end
+	end
+
+	-- Apply active screen shake to camera/hero position for current frame
+	if self.shake_time > 0 then
+		self.shake_time = self.shake_time - dt
+		local factor = math.max(0, self.shake_time / self.shake_duration)
+		local intensity = self.shake_intensity * factor
+		self.shake_offset = vmath.vector3(
+			(math.random() - 0.5) * 2 * intensity,
+			(math.random() - 0.5) * 2 * intensity,
+			0
+		)
+		local shaken = go.get_position() + self.shake_offset
+		if is_finite_vector3(shaken) then
+			go.set_position(shaken)
+		end
+	end
+end
+
+function on_message(self, message_id, message)
+	if message_id == hash("contact_point_response") then
+		if not game_state.is_running() then
+			return
+		end
+		if message.other_group ~= hash("walls") then
+			return
+		end
+		if message.distance <= 0 then
+			return
+		end
+
+		local projection = vmath.dot(self.correction, message.normal)
+		local compensation = (message.distance - projection) * message.normal
+		if (compensation.x ~= 0 or compensation.y ~= 0) and is_finite_vector3(compensation) then
+			local pos = go.get_position() + compensation
+			--pos = clamp_to_arena(pos)
+			if is_finite_vector3(pos) then
+				go.set_position(pos)
+				self.correction = self.correction + compensation
+			end
+		end
+		return
+	end
+
+	if message_id == hash("enemy_hit") then
+		if not game_state.is_running() then
+			return
+		end
+		self.health = math.max(0, self.health - (message.damage or 1))
+		notify_health(self)
+
+		-- Play sound
+		sound_manager.play_hero_hurt()
+
+		-- Screen shake
+		self.shake_duration = 0.2
+		self.shake_time = self.shake_duration
+		self.shake_intensity = 4.5
+
+		-- Hero hurt flash & flinch punch
+		go.cancel_animations("#sprite", "tint")
+		go.set("#sprite", "tint", vmath.vector4(2.4, 0.3, 0.3, 1.0))
+		go.animate("#sprite", "tint", go.PLAYBACK_ONCE_FORWARD, vmath.vector4(1, 1, 1, 1), go.EASING_OUTQUAD, 0.18)
+
+		go.cancel_animations(".", "scale")
+		go.set_scale(vmath.vector3(0.85, 1.15, 1.0))
+		go.animate(".", "scale", go.PLAYBACK_ONCE_FORWARD, vmath.vector3(1, 1, 1), go.EASING_OUTBACK, 0.18)
+
+		if self.health <= 0 then
+			game_state.set_dead(true)
+			sound_manager.stop_music()
+			msg.post("/gui#gui", "player_died")
+		end
+		return
+	end
+
+	if message_id == hash("add_xp") then
+		local leveled = game_state.add_xp(message.amount or 10)
+		msg.post("/gui#gui", "update_xp", {
+			xp = game_state.xp,
+			xp_next = game_state.xp_next,
+			level = game_state.level,
+			skill_points = game_state.skill_points,
+		})
+		if leveled then
+			sound_manager.play_chest_open()
+
+			-- Level Up floating text above hero
+			local hpos = go.get_position()
+			msg.post("/controller", "spawn_damage_text", {
+				position = vmath.vector3(hpos.x, hpos.y + 24, 0.5),
+				is_level_up = true,
+			})
+
+			-- Hero golden celebration flash & bounce punch
+			go.cancel_animations("#sprite", "tint")
+			go.set("#sprite", "tint", vmath.vector4(2.4, 2.2, 0.5, 1.0))
+			go.animate("#sprite", "tint", go.PLAYBACK_ONCE_FORWARD, vmath.vector4(1, 1, 1, 1), go.EASING_OUTQUAD, 0.35)
+
+			go.cancel_animations(".", "scale")
+			go.set_scale(vmath.vector3(1.35, 1.35, 1.0))
+			go.animate(".", "scale", go.PLAYBACK_ONCE_FORWARD, vmath.vector3(1, 1, 1), go.EASING_OUTBACK, 0.28)
+		end
+		return
+	end
+
+	if message_id == hash("chest_opened") then
+		if not game_state.is_running() then
+			return
+		end
+		self.pointer_down = false
+		self.has_target = false
+		msg.post("/gui#gui", "show_upgrade_cards")
+		return
+	end
+
+	if message_id == hash("apply_upgrade") then
+		local up_id = message.upgrade_id
+		if up_id == "extra_sword" then
+			if #self.weapon_ids < MAX_WEAPON_COUNT then
+				spawn_weapon(self)
+			else
+				self.weapon_level = math.min(MAX_WEAPON_LEVEL, self.weapon_level + 1)
+				sync_weapons(self)
+			end
+		elseif up_id == "move_speed" then
+			self.move_speed = math.min(196, (self.move_speed or MOVE_SPEED) + 12)
+			print("UPGRADE: move_speed -> " .. tostring(self.move_speed))
+		elseif up_id == "max_hp" then
+			self.max_health = game_state.max_health
+			self.health = self.max_health
+			notify_health(self)
+			print("UPGRADE: max_hp -> " .. tostring(self.max_health))
+		elseif up_id == "spin_speed" then
+			self.weapon_level = math.min(MAX_WEAPON_LEVEL, self.weapon_level + 1)
+			sync_weapons(self)
+			for _, wid in ipairs(self.weapon_ids) do
+				msg.post(wid, "boost_spin", { multiplier = 1.20 })
+			end
+			print("UPGRADE: spin_speed -> boosted 20%")
+		elseif up_id == "heal_potion" then
+			self.max_health = game_state.max_health
+			self.health = math.min(self.max_health, self.health + 40)
+			notify_health(self)
+			print("UPGRADE: healed to " .. tostring(self.health) .. "/" .. tostring(self.max_health))
+		elseif up_id == "shield_barrier" then
+			self.weapon_level = math.min(MAX_WEAPON_LEVEL, self.weapon_level + 1)
+			sync_weapons(self)
+			for _, wid in ipairs(self.weapon_ids) do
+				msg.post(wid, "boost_damage", { damage_add = 2 })
+			end
+			print("UPGRADE: shield_barrier -> damage boosted")
+		elseif up_id == "xp_surge" then
+			msg.post(".", "add_xp", { amount = 50 })
+			print("UPGRADE: xp_surge -> +50 XP awarded")
+		elseif up_id == "sunfire_blast" then
+			game_state.for_each_enemy(function(enemy_id)
+				msg.post(enemy_id, "take_damage", { damage = 35, is_crit = true })
+			end)
+			sound_manager.play_slash()
+			print("UPGRADE: sunfire_blast -> 35 damage dealt to all active monsters")
+		end
+		return
+	end
+end
