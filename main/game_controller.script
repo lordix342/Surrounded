@@ -2,14 +2,14 @@ local game_state = require("main.modules.game_state")
 local pathfinding = require("main.modules.pathfinding")
 local sound_manager = require("main.modules.sound_manager")
 
-local ENEMY_HP_BY_LEVEL = { 14, 22, 32, 46, 64, 86, 112, 145, 190 }
-local ENEMY_SPEED_BY_LEVEL = { 55, 62, 70, 78, 86, 95, 105, 116, 128 }
-local ENEMY_DAMAGE_BY_LEVEL = { 6, 8, 10, 13, 16, 20, 25, 30, 36 }
+local ENEMY_HP_BY_LEVEL = { 14, 20, 28, 38, 50, 65, 82, 105, 135 }
+local ENEMY_SPEED_BY_LEVEL = { 52, 57, 63, 69, 76, 83, 90, 98, 106 }
+local ENEMY_DAMAGE_BY_LEVEL = { 5, 7, 9, 11, 14, 17, 21, 25, 30 }
 
 local BASE_SPAWN_INTERVAL = 1.8
 local MIN_SPAWN_INTERVAL = 1.0
 local SPAWN_ACCELERATION = 0.001
-local CHEST_DROP_CHANCE = 0.035
+local CHEST_DROP_CHANCE = 0.10
 local MAX_ACTIVE_ENEMIES = 12
 
 local function is_finite_number(value)
@@ -21,7 +21,7 @@ local function is_finite_vector3(v)
 end
 
 local function pick_enemy_level(elapsed_time)
-	local level = 1 + math.floor(elapsed_time / 20)
+	local level = 1 + math.floor(elapsed_time / 32)
 	if level > 9 then
 		level = 9
 	end
@@ -72,8 +72,8 @@ local function pick_enemy_type(elapsed_time)
 end
 
 local function get_max_enemies(elapsed_time)
-	-- Starts at 18, smoothly increases up to 38 active horde enemies!
-	return math.min(38, 18 + math.floor(elapsed_time / 12))
+	-- Starts at 16, smoothly increases up to 32 active horde enemies
+	return math.min(32, 16 + math.floor(elapsed_time / 16))
 end
 
 local function spawn_boss(self, boss_type, hp_val, speed_val, dmg_val)
@@ -118,12 +118,12 @@ local function spawn_enemy(self)
 	local speed = ENEMY_SPEED_BY_LEVEL[level]
 	local damage = ENEMY_DAMAGE_BY_LEVEL[level]
 
-	-- Continuous overtime scaling so enemies don't plateau after 3 minutes
-	if self.elapsed_time > 60 then
-		local overtime = self.elapsed_time - 60
-		local hp_scale = 1.0 + (overtime / 45.0) * 0.50
-		local dmg_scale = 1.0 + (overtime / 60.0) * 0.35
-		local spd_scale = 1.0 + math.min(0.35, (overtime / 100.0) * 0.20)
+	-- Continuous overtime scaling (gentler progression starting after 100s)
+	if self.elapsed_time > 100 then
+		local overtime = self.elapsed_time - 100
+		local hp_scale = 1.0 + (overtime / 75.0) * 0.35
+		local dmg_scale = 1.0 + (overtime / 90.0) * 0.25
+		local spd_scale = 1.0 + math.min(0.20, (overtime / 150.0) * 0.15)
 		hp = math.floor(hp * hp_scale)
 		damage = math.floor(damage * dmg_scale)
 		speed = math.floor(speed * spd_scale)
@@ -159,10 +159,10 @@ end
 
 -- Wave definitions with mid-wave mini-boss encounters
 local WAVES = {
-	{ id = "w1_boss", time = 35,  boss = hash("boss_hound"),       hp = 140, spd = 70, dmg = 15 },
-	{ id = "w2_boss", time = 110, boss = hash("boss_necromancer"), hp = 320, spd = 60, dmg = 20 },
-	{ id = "w3_boss", time = 185, boss = hash("boss_death_knight"), hp = 560, spd = 55, dmg = 26 },
-	{ id = "w4_boss", time = 260, boss = hash("boss_hound"),        hp = 480, spd = 72, dmg = 28, dual = hash("boss_necromancer") },
+	{ id = "w1_boss", time = 40,  boss = hash("boss_hound"),        hp = 110, spd = 62, dmg = 12 },
+	{ id = "w2_boss", time = 120, boss = hash("boss_necromancer"),  hp = 240, spd = 55, dmg = 16 },
+	{ id = "w3_boss", time = 195, boss = hash("boss_death_knight"), hp = 420, spd = 50, dmg = 20 },
+	{ id = "w4_boss", time = 275, boss = hash("boss_hound"),        hp = 380, spd = 60, dmg = 22, dual = hash("boss_necromancer") },
 }
 
 function update(self, dt)
