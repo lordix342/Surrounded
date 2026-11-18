@@ -516,6 +516,22 @@ end
 -- INITIALIZATION & LIFECYCLE
 -- ====================================================================
 
+local function resize_overlays(self)
+	local win_w, win_h = window.get_size()
+	if win_w ~= self.last_win_w or win_h ~= self.last_win_h then
+		self.last_win_w = win_w
+		self.last_win_h = win_h
+		local max_dim = math.max(4000, math.max(win_w, win_h) * 4)
+		local overlay_size = vmath.vector3(max_dim, max_dim, 0)
+		local overlays = { self.pause_root, self.death_root, self.upgrade_root, self.skill_tree_root }
+		for _, node in ipairs(overlays) do
+			if node then
+				gui.set_size(node, overlay_size)
+			end
+		end
+	end
+end
+
 function init(self)
 	msg.post(".", "acquire_input_focus")
 
@@ -649,10 +665,12 @@ function init(self)
 	refresh_xp(self)
 	refresh_timer(self)
 	refresh_kills(self)
+	resize_overlays(self)
 	print("GUI ready with Skill Tree, XP System, and Upgrades")
 end
 
 function update(self, dt)
+	resize_overlays(self)
 	refresh_hp(self)
 	refresh_xp(self)
 
