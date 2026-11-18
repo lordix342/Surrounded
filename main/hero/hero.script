@@ -9,10 +9,11 @@ local MAX_WEAPON_COUNT = 6
 local START_WEAPON_COUNT = 2
 local MAX_HEALTH = 100
 
-local ARENA_MIN_X = -13 * 16 + 8
-local ARENA_MAX_X = 12 * 16 - 8
-local ARENA_MIN_Y = -18 * 16 + 8
-local ARENA_MAX_Y = 14 * 16 - 8
+-- Arena bounds in world coordinates matching the full tilemap (pathfinding.lua)
+local ARENA_MIN_X = -46 * 16
+local ARENA_MAX_X = 48 * 16
+local ARENA_MIN_Y = -41 * 16
+local ARENA_MAX_Y = 36 * 16
 
 local function is_finite_number(value)
 	return value == value and value > -10000 and value < 10000
