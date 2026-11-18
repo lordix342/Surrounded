@@ -5,9 +5,9 @@ local HIT_INTERVAL = 0.25
 
 go.property("slot_index", 1)
 
-local RADIUS_BY_LEVEL = { 24, 30, 36, 42, 48 }
-local DAMAGE_BY_LEVEL = { 2, 4, 6, 9, 12 }
-local ROTATION_SPEED_BY_LEVEL = { 2.5, 3.2, 3.8, 4.4, 5.0 }
+local RADIUS_BY_LEVEL = { 26, 32, 38, 44, 50 }
+local DAMAGE_BY_LEVEL = { 7, 12, 18, 26, 36 }
+local ROTATION_SPEED_BY_LEVEL = { 2.8, 3.4, 4.0, 4.6, 5.2 }
 
 local function clamp_level(level)
 	if level < 1 then
