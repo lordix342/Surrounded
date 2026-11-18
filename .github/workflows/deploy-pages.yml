@@ -53,15 +53,15 @@ jobs:
           java -jar tools/bob.jar \
             --platform wasm-web \
             --archive \
-            --bundle-output build/bundle \
+            --bundle-output bundle \
             build bundle
 
       - name: Locate HTML5 Bundle Output
         id: find-bundle
         run: |
-          INDEX_PATH=$(find build/bundle -name "index.html" | head -n 1)
+          INDEX_PATH=$(find bundle -name "index.html" | head -n 1)
           if [ -z "$INDEX_PATH" ]; then
-            echo "Error: index.html not found in build/bundle"
+            echo "Error: index.html not found in bundle"
             exit 1
           fi
           BUNDLE_DIR=$(dirname "$INDEX_PATH")
